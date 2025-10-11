@@ -8,7 +8,6 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import ButtonLoader from '@/components/ButtonLoader';
-import DebugAuth from '@/components/DebugAuth';
 import { apiUrl } from '@/lib/api';
 
 export default function LoginPage() {
@@ -260,9 +259,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      {/* Debug Component - Remove this in production */}
-      <DebugAuth />
     </div>
   );
 }
