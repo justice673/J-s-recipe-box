@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
           {/* Image Side */}
           <div className="relative">
             <Image
-              src="https://themewagon.github.io/delicious/img/bg-img/insta7.jpg"
+              src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&h=600&fit=crop"
               alt="Delicious food"
               fill
               className="object-cover"
@@ -63,9 +63,16 @@ export default function ForgotPasswordPage() {
                 <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: 'Caveat, cursive' }}>
                   Reset Your Password
                 </h2>
-                <h3 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-300 via-green-400 to-green-500 bg-clip-text text-transparent" style={{ fontFamily: 'Caveat, cursive' }}>
-                  J&apos;s Recipe Box
-                </h3>
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <img 
+                    src="/logo.png" 
+                    alt="J's Recipe Box Logo" 
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
+                  <h3 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-300 via-green-400 to-green-500 bg-clip-text text-transparent" style={{ fontFamily: 'Caveat, cursive' }}>
+                    J&apos;s Recipe Box
+                  </h3>
+                </div>
               </div>
             </div>
           </div>

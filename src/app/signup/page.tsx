@@ -4,8 +4,14 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import ButtonLoader from '@/components/ButtonLoader';
 
 export default function SignupPage() {
+  const router = useRouter();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [form, setForm] = React.useState({
@@ -58,10 +64,20 @@ export default function SignupPage() {
       if (!res.ok) throw new Error(data.message || 'Signup failed');
       setSuccess('Account created! You can now log in.');
       setForm({ fullName: '', email: '', password: '', confirmPassword: '', terms: false });
+      toast.success('Account created! Redirecting to login...');
+      // Optionally auto-login after signup:
+      // login({
+      //   fullName: data.fullName || (data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : ''),
+      //   email: data.email
+      // }, data.token);
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
     } catch (err: unknown) {
       let errorMsg = 'Signup failed';
       if (err instanceof Error) errorMsg = err.message;
       setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -86,7 +102,7 @@ export default function SignupPage() {
           {/* Image Side */}
           <div className="relative">
             <Image
-              src="https://themewagon.github.io/delicious/img/bg-img/insta6.jpg"
+              src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&h=600&fit=crop"
               alt="Delicious food"
               fill
               className="object-cover"
@@ -98,9 +114,16 @@ export default function SignupPage() {
                 <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: 'Caveat, cursive' }}>
                   Join Our Community
                 </h2>
-                <h3 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-300 via-green-400 to-green-500 bg-clip-text text-transparent" style={{ fontFamily: 'Caveat, cursive' }}>
-                  J&apos;s Recipe Box
-                </h3>
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <img 
+                    src="/logo.png" 
+                    alt="J's Recipe Box Logo" 
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
+                  <h3 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-300 via-green-400 to-green-500 bg-clip-text text-transparent" style={{ fontFamily: 'Caveat, cursive' }}>
+                    J&apos;s Recipe Box
+                  </h3>
+                </div>
               </div>
             </div>
           </div>
@@ -135,7 +158,7 @@ export default function SignupPage() {
                       id="fullName"
                       value={form.fullName}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
                       placeholder="Enter your full name"
                       style={{ fontFamily: 'Outfit, sans-serif' }}
                     />
@@ -156,7 +179,7 @@ export default function SignupPage() {
                       id="email"
                       value={form.email}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
                       placeholder="Enter your email"
                       style={{ fontFamily: 'Outfit, sans-serif' }}
                     />
@@ -177,7 +200,7 @@ export default function SignupPage() {
                       id="password"
                       value={form.password}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
+                      className="w-full pl-10 pr-12 py-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
                       placeholder="Create a password"
                       style={{ fontFamily: 'Outfit, sans-serif' }}
                     />
@@ -209,7 +232,7 @@ export default function SignupPage() {
                       id="confirmPassword"
                       value={form.confirmPassword}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
+                      className="w-full pl-10 pr-12 py-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
                       placeholder="Confirm your password"
                       style={{ fontFamily: 'Outfit, sans-serif' }}
                     />
@@ -256,11 +279,18 @@ export default function SignupPage() {
                 {/* Sign Up Button */}
                 <button
                   type="submit"
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-300 shadow-lg hover:shadow-xl"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 font-semibold transition-colors duration-300 shadow-lg hover:shadow-xl flex items-center justify-center"
                   style={{ fontFamily: 'Caveat, cursive' }}
                   disabled={loading}
                 >
-                  {loading ? 'Creating Account...' : 'Create Account'}
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <ButtonLoader />
+                      <span>Creating Account...</span>
+                    </div>
+                  ) : (
+                    'Create Account'
+                  )}
                 </button>
 
                 {/* Sign In Link */}

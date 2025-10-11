@@ -3,9 +3,11 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Clock, Users, ChefHat, Heart, ArrowLeft, Star, ArrowRight, Plus, Settings, Edit, User } from 'lucide-react';
+import { Clock, ChefHat, Heart, ArrowLeft, Star, ArrowRight, Plus, Edit, User } from 'lucide-react';
 import Pagination from '@/components/Pagination';
 import AddRecipeModal from '@/components/AddRecipeModal';
+import Loader from '@/components/Loader';
+import { toast } from 'sonner';
 
 interface Recipe {
   _id?: string;
@@ -51,9 +53,17 @@ export default function ProfilePage() {
   const [editRecipe, setEditRecipe] = React.useState<Recipe | null>(null);
   const [showEditModal, setShowEditModal] = React.useState(false);
   const [favoriteRecipes, setFavoriteRecipes] = React.useState<Recipe[]>([]);
+  const [mounted, setMounted] = React.useState(false);
   const recipesPerPage = 6;
 
+  // Ensure component is mounted before accessing localStorage
   React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!mounted) return;
+    
     const fetchProfileAndRecipes = async () => {
       setLoading(true);
       setError('');
@@ -81,9 +91,11 @@ export default function ProfilePage() {
       }
     };
     fetchProfileAndRecipes();
-  }, []);
+  }, [mounted]);
 
   React.useEffect(() => {
+    if (!mounted) return;
+    
     const fetchFavorites = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -100,8 +112,8 @@ export default function ProfilePage() {
         setFavoriteRecipes(liked);
       } catch {}
     };
-    if (activeTab === 'favorites' && user) fetchFavorites();
-  }, [activeTab, user]);
+    if (activeTab === 'favorites' && user && mounted) fetchFavorites();
+  }, [activeTab, user, mounted]);
 
   // Get current recipes based on active tab
   const currentRecipes = activeTab === 'favorites' ? favoriteRecipes : publishedRecipes;
@@ -119,10 +131,16 @@ export default function ProfilePage() {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     setCurrentPage(0);
+    const tabNames: { [key: string]: string } = {
+      'favorites': 'Favorite Recipes',
+      'published': 'Published Recipes'
+    };
+    toast.info(`Switched to ${tabNames[tab]} 📋`);
   };
 
   const handleAddRecipe = async (recipeData: Recipe) => {
     try {
+      if (typeof window === 'undefined') return;
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Not authenticated.');
       const res = await fetch('http://localhost:5000/api/recipes', {
@@ -150,7 +168,7 @@ export default function ProfilePage() {
     } catch (err: unknown) {
       let errorMsg = 'Failed to add recipe';
       if (err instanceof Error) errorMsg = err.message;
-      alert(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -161,8 +179,12 @@ export default function ProfilePage() {
 
   const handleEditRecipe = async (updatedData: Recipe) => {
     try {
+      if (typeof window === 'undefined') return;
       const token = localStorage.getItem('token');
-      if (!token || !editRecipe) throw new Error('Not authenticated.');
+      if (!token || !editRecipe) {
+        toast.error('Please log in to edit recipes');
+        return;
+      }
       const res = await fetch(`http://localhost:5000/api/recipes/${editRecipe._id || editRecipe.id}`, {
         method: 'PUT',
         headers: {
@@ -175,6 +197,7 @@ export default function ProfilePage() {
         const errData = await res.json();
         throw new Error(errData.message || 'Failed to update recipe');
       }
+      toast.success('Recipe updated successfully! ✏️');
       // Refetch recipes
       const userRes = await fetch('http://localhost:5000/api/users/me', {
         headers: { Authorization: `Bearer ${token}` }
@@ -188,15 +211,19 @@ export default function ProfilePage() {
     } catch (err: unknown) {
       let errorMsg = 'Failed to update recipe';
       if (err instanceof Error) errorMsg = err.message;
-      alert(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
   const handleDeleteRecipe = async (recipeId: string) => {
+    if (typeof window === 'undefined') return;
     if (!window.confirm('Are you sure you want to delete this recipe?')) return;
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated.');
+      if (!token) {
+        toast.error('Please log in to delete recipes');
+        return;
+      }
       const res = await fetch(`http://localhost:5000/api/recipes/${recipeId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
@@ -205,6 +232,7 @@ export default function ProfilePage() {
         const errData = await res.json();
         throw new Error(errData.message || 'Failed to delete recipe');
       }
+      toast.success('Recipe deleted successfully! 🗑️');
       // Refetch recipes
       const userRes = await fetch('http://localhost:5000/api/users/me', {
         headers: { Authorization: `Bearer ${token}` }
@@ -216,13 +244,18 @@ export default function ProfilePage() {
     } catch (err: unknown) {
       let errorMsg = 'Failed to delete recipe';
       if (err instanceof Error) errorMsg = err.message;
-      alert(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
   const userInitials = user ? (user.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase()) : '';
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return <Loader />;
+  }
+
+  if (loading) return <Loader />;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
   if (!user) return <div className="p-8 text-center">No user data.</div>;
 
@@ -235,117 +268,109 @@ export default function ProfilePage() {
             {/* Back to Home */}
             <Link 
               href="/" 
-              className="flex items-center gap-2 text-green-600 hover:text-green-700 transition-colors"
-              style={{ fontFamily: 'Caveat, cursive' }}
+              className="flex items-center gap-1 sm:gap-2 text-green-600 hover:text-green-700 transition-colors font-caveat"
             >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="text-lg font-semibold">Back to Home</span>
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-sm sm:text-lg font-semibold hidden xs:inline">Back to Home</span>
+              <span className="text-sm font-semibold xs:hidden">Back</span>
             </Link>
 
             {/* Page Title */}
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
+            <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 text-center font-caveat">
               My Profile
             </h1>
 
             {/* Add Recipe Button */}
             <button 
               onClick={() => setShowAddModal(true)}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2" 
-              style={{ fontFamily: 'Caveat, cursive' }}
+              className="bg-green-600 hover:bg-green-700 text-white px-2 py-2 sm:px-4 sm:py-2 text-sm sm:text-base font-semibold transition-colors flex items-center gap-1 sm:gap-2 font-caveat"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Add Recipe</span>
+              <span className="sm:hidden">Add</span>
             </button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         
         {/* Profile Header */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
             
             {/* Profile Picture */}
             <div className="flex-shrink-0">
-              <div className="w-24 h-24 bg-green-600 rounded-full flex items-center justify-center text-white text-2xl font-bold" style={{ fontFamily: 'Caveat, cursive' }}>
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-green-600 rounded-full flex items-center justify-center text-white text-lg sm:text-xl md:text-2xl font-bold font-caveat">
                 {userInitials}
               </div>
             </div>
             
             {/* Profile Info */}
-            <div className="flex-1 text-center md:text-left">
-              <h2 className="text-3xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Caveat, cursive' }}>
-                {user.firstName} {user.lastName}
+            <div className="flex-1 text-center sm:text-left">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2 font-caveat">
+                {user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User'}
               </h2>
-              <p className="text-gray-600 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 font-outfit">
                 {user.email}
               </p>
-              <p className="text-sm text-gray-500 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                Member since {user.joinedDate}
+              <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4 font-outfit">
+                Member since <span className="text-green-600">{user.joinedDate || 'Recently'}</span>
               </p>
               
               {/* Stats */}
-              <div className="flex justify-center md:justify-start gap-8">
+              <div className="flex justify-center sm:justify-start gap-4 sm:gap-6 md:gap-8">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600" style={{ fontFamily: 'Caveat, cursive' }}>
-                    {user.totalRecipes}
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 font-caveat">
+                    {publishedRecipes.length || 0}
                   </p>
-                  <p className="text-sm text-gray-600" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  <p className="text-xs sm:text-sm text-gray-600 font-outfit">
                     Published Recipes
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600" style={{ fontFamily: 'Caveat, cursive' }}>
-                    {user.totalFavorites}
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 font-caveat">
+                    {favoriteRecipes.length || 0}
                   </p>
-                  <p className="text-sm text-gray-600" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  <p className="text-xs sm:text-sm text-gray-600 font-outfit">
                     Favorite Recipes
                   </p>
                 </div>
               </div>
             </div>
-            
-            {/* Settings Button */}
-            <div className="flex-shrink-0">
-              <button className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                <Settings className="w-5 h-5" />
-                <span className="text-sm">Settings</span>
-              </button>
-            </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-lg mb-8">
+        <div className="bg-white rounded-lg shadow-lg mb-6 sm:mb-8">
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex">
               <button
                 onClick={() => handleTabChange('favorites')}
-                className={`py-4 px-6 border-b-2 font-semibold text-sm transition-colors ${
+                className={`py-3 sm:py-4 px-3 sm:px-6 border-b-2 font-semibold text-xs sm:text-sm transition-colors flex-1 font-caveat ${
                   activeTab === 'favorites'
                     ? 'border-green-500 text-green-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
-                style={{ fontFamily: 'Caveat, cursive' }}
               >
-                <div className="flex items-center gap-2">
-                  <Heart className="w-4 h-4" />
-                  <span>Favorite Recipes ({user.totalFavorites})</span>
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
+                  <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Favorite Recipes ({favoriteRecipes.length || 0})</span>
+                  <span className="xs:hidden">Favorites ({favoriteRecipes.length || 0})</span>
                 </div>
               </button>
               <button
                 onClick={() => handleTabChange('published')}
-                className={`py-4 px-6 border-b-2 font-semibold text-sm transition-colors ${
+                className={`py-3 sm:py-4 px-3 sm:px-6 border-b-2 font-semibold text-xs sm:text-sm transition-colors flex-1 font-caveat ${
                   activeTab === 'published'
                     ? 'border-green-500 text-green-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
-                style={{ fontFamily: 'Caveat, cursive' }}
               >
-                <div className="flex items-center gap-2">
-                  <ChefHat className="w-4 h-4" />
-                  <span>My Recipes ({user.totalRecipes})</span>
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
+                  <ChefHat className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">My Recipes ({publishedRecipes.length || 0})</span>
+                  <span className="xs:hidden">Published ({publishedRecipes.length || 0})</span>
                 </div>
               </button>
             </nav>
@@ -353,29 +378,29 @@ export default function ProfilePage() {
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
           
           {/* Results Header */}
-          <div className="mb-6">
-            <p className="text-gray-600 text-lg" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              {currentRecipes.length} {activeTab === 'favorites' ? 'favorite' : 'published'} recipes
+          <div className="mb-4 sm:mb-6">
+            <p className="text-gray-600 text-sm sm:text-base md:text-lg font-outfit">
+              {currentRecipes.length} {activeTab === 'favorites' ? 'favorite' : 'published'} recipe{currentRecipes.length !== 1 ? 's' : ''}
             </p>
           </div>
 
           {/* Empty State */}
           {currentRecipes.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-8 sm:py-12">
               <div className="text-gray-400 mb-4">
                 {activeTab === 'favorites' ? (
-                  <Heart className="w-16 h-16 mx-auto mb-4" />
+                  <Heart className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4" />
                 ) : (
-                  <ChefHat className="w-16 h-16 mx-auto mb-4" />
+                  <ChefHat className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4" />
                 )}
               </div>
-              <h3 className="text-xl font-bold text-gray-600 mb-2" style={{ fontFamily: 'Caveat, cursive' }}>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-600 mb-2 font-caveat">
                 {activeTab === 'favorites' ? 'No Favorites Yet' : 'No Recipes Published'}
               </h3>
-              <p className="text-gray-500 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <p className="text-gray-500 mb-4 text-sm sm:text-base px-4 font-outfit">
                 {activeTab === 'favorites'
                   ? 'Start exploring recipes and add them to your favorites!'
                   : 'Share your culinary creations with the community!'
@@ -383,8 +408,8 @@ export default function ProfilePage() {
               </p>
               <Link
                 href={activeTab === 'favorites' ? '/recipes' : '#'}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
-                style={{ fontFamily: 'Caveat, cursive' }}
+                onClick={activeTab === 'published' ? () => setShowAddModal(true) : undefined}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 sm:px-6 sm:py-2 text-sm sm:text-base font-semibold transition-colors font-caveat"
               >
                 {activeTab === 'favorites' ? 'Browse Recipes' : 'Add Your First Recipe'}
               </Link>
@@ -392,14 +417,16 @@ export default function ProfilePage() {
           ) : (
             <>
               {/* Recipes Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-                {displayRecipes.map((recipe) => (
-                  <div key={recipe.id} className="bg-gray-50 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
+                {displayRecipes.map((recipe, index) => (
+                  <div key={recipe.id || recipe._id} className="bg-gray-50 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
                     <div className="relative h-56 overflow-hidden">
                       <Image
                         src={recipe.image}
                         alt={recipe.title}
                         fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        priority={index < 3}
                         className="object-cover transition-transform duration-300 hover:scale-110"
                       />
                       {activeTab === 'published' && (
@@ -423,36 +450,36 @@ export default function ProfilePage() {
                         </div>
                       )}
                       <div className="absolute bottom-3 left-3 flex gap-2">
-                        <span className="px-2 py-1 bg-green-600 text-white text-xs font-semibold rounded-full capitalize" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                        <span className="px-2 py-1 bg-green-600 text-white text-xs font-semibold rounded-full capitalize font-outfit">
                           {recipe.cuisine}
                         </span>
                         {recipe.diet !== 'none' && (
-                          <span className="px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full capitalize" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                          <span className="px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full capitalize font-outfit">
                             {recipe.diet}
                           </span>
                         )}
                       </div>
                     </div>
                     
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold mb-2 text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
+                    <div className="p-4 sm:p-5 lg:p-6">
+                      <h3 className="text-lg sm:text-xl font-bold mb-2 text-gray-800 line-clamp-2 font-caveat">
                         {recipe.title}
                       </h3>
-                      <p className="text-gray-600 mb-4 text-sm" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                      <p className="text-gray-600 mb-3 sm:mb-4 text-sm line-clamp-2 font-outfit">
                         {recipe.description}
                       </p>
                       
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+                        <div className="flex items-center gap-3 sm:gap-4">
                           <div className="flex items-center">
                             <Clock className="w-4 h-4 text-green-600 mr-1" />
-                            <span className="text-green-600 font-semibold text-sm" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                              {typeof recipe.time === 'string' || typeof recipe.time === 'number' ? recipe.time : ''}
+                            <span className="text-green-600 font-semibold text-sm font-outfit">
+                              {recipe.prepTime || (recipe as any).time || 0} min
                             </span>
                           </div>
                           <div className="flex items-center">
-                            <span className="text-gray-500 text-sm" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                              {recipe.calories} cal
+                            <span className="text-gray-500 text-sm font-outfit">
+                              {recipe.calories || 0} cal
                             </span>
                           </div>
                         </div>
@@ -461,10 +488,10 @@ export default function ProfilePage() {
                             recipe.difficulty === 'easy' ? 'text-green-500' :
                             recipe.difficulty === 'medium' ? 'text-yellow-500' : 'text-red-500'
                           }`} />
-                          <span className={`text-sm font-semibold capitalize ${
+                          <span className={`text-sm font-semibold capitalize font-outfit ${
                             recipe.difficulty === 'easy' ? 'text-green-500' :
                             recipe.difficulty === 'medium' ? 'text-yellow-500' : 'text-red-500'
-                          }`} style={{ fontFamily: 'Outfit, sans-serif' }}>
+                          }`}>
                             {recipe.difficulty}
                           </span>
                         </div>
@@ -475,20 +502,20 @@ export default function ProfilePage() {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
-                              className={`w-4 h-4 ${star <= Math.floor(Number(recipe.rating ?? 0)) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${star <= Math.floor(Number(recipe.rating ?? 0)) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                             />
                           ))}
-                          <span className="ml-1 text-sm text-gray-600" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                            ({recipe.rating ?? 0})
+                          <span className="ml-1 text-xs sm:text-sm text-gray-600 font-outfit">
+                            ({(recipe.rating ?? 0).toFixed(1)})
                           </span>
                         </div>
                         <Link
                           href={`/recipes/${String(recipe.id ?? recipe._id ?? '')}`}
-                          className="text-green-600 hover:text-green-700 font-semibold text-sm flex items-center gap-1"
-                          style={{ fontFamily: 'Caveat, cursive' }}
+                          className="text-green-600 hover:text-green-700 font-semibold text-sm flex items-center gap-1 font-caveat"
                         >
-                          View Recipe
-                          <ArrowRight className="w-4 h-4" />
+                          <span className="hidden sm:inline">View Recipe</span>
+                          <span className="sm:hidden">View</span>
+                          <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </Link>
                       </div>
                     </div>
@@ -520,7 +547,7 @@ export default function ProfilePage() {
           isOpen={showEditModal}
           onClose={() => { setShowEditModal(false); setEditRecipe(null); }}
           onSubmit={handleEditRecipe}
-          initialData={editRecipe}
+          initialData={editRecipe || undefined}
         />
       )}
     </div>

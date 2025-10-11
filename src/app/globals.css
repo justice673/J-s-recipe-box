@@ -1,5 +1,37 @@
 @import "tailwindcss";
 
+/* Line clamp utilities for text truncation */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Extra small breakpoint for better mobile responsiveness */
+@media (min-width: 475px) {
+  .xs\:inline {
+    display: inline;
+  }
+  .xs\:hidden {
+    display: none;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -8,7 +40,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: 'Outfit', sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -17,6 +49,23 @@
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+}
+
+/* Font loading optimization */
+html {
+  font-display: swap;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+}
+
+.font-caveat {
+  font-family: 'Caveat', cursive;
+}
+
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
 }
 
 body {

@@ -1,17 +1,43 @@
 'use client';
 
 import React from 'react';
-import { X, Upload, Plus, Minus } from 'lucide-react';
+import Image from 'next/image';
+import { X, Plus, Minus } from 'lucide-react';
+import ButtonLoader from './ButtonLoader';
+import { toast } from 'sonner';
 
 interface AddRecipeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (recipeData: Record<string, unknown>) => void;
-  initialData?: Record<string, unknown>;
+  onSubmit: (recipeData: Recipe) => Promise<void>;
+  initialData?: Recipe;
 }
 
-const CLOUDINARY_UPLOAD_PRESET = 'your_upload_preset'; // Replace with your Cloudinary upload preset
-const CLOUDINARY_CLOUD_NAME = 'your_cloud_name'; // Replace with your Cloudinary cloud name
+// Recipe type from profile page
+export interface Recipe {
+  _id?: string;
+  id?: string | number;
+  title: string;
+  description: string;
+  image: string;
+  images?: string[];
+  prepTime: number;
+  difficulty: string;
+  category: string;
+  cuisine: string;
+  diet: string;
+  serves: number;
+  calories?: number;
+  ingredients: string[];
+  instructions: string[];
+  rating?: number;
+  liked?: boolean;
+  publishedDate?: string;
+  [key: string]: unknown;
+}
+
+const CLOUDINARY_UPLOAD_PRESET = 'Jrecipesite'; // Your actual unsigned upload preset name
+const CLOUDINARY_CLOUD_NAME = 'dof9wv5gr'; // Your actual Cloudinary cloud name
 
 export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData }: AddRecipeModalProps) {
   const [formData, setFormData] = React.useState({
@@ -28,15 +54,16 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
     ingredients: [''],
     instructions: ['']
   });
-  const [imageFile, setImageFile] = React.useState<File | null>(null);
-  const [imagePreview, setImagePreview] = React.useState<string>('');
+  const [imageFiles, setImageFiles] = React.useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [isAnimating, setIsAnimating] = React.useState(false);
 
   React.useEffect(() => {
     if (initialData) {
-      setFormData({
-        ...formData,
+      setFormData(prevFormData => ({
+        ...prevFormData,
         ...initialData,
         prepTime: typeof initialData.prepTime === 'number' || typeof initialData.prepTime === 'string' ? initialData.prepTime.toString() : '',
         serves: typeof initialData.serves === 'number' || typeof initialData.serves === 'string' ? initialData.serves.toString() : '',
@@ -44,10 +71,21 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
         ingredients: Array.isArray(initialData.ingredients) ? initialData.ingredients as string[] : [''],
         instructions: Array.isArray(initialData.instructions) ? initialData.instructions as string[] : [''],
         image: typeof initialData.image === 'string' ? initialData.image : '',
-      });
-      setImagePreview(typeof initialData.image === 'string' ? initialData.image : '');
+      }));
+      // Set initial image previews from existing data
+      const existingImages = initialData.images || (initialData.image ? [initialData.image] : []);
+      setImagePreviews(existingImages);
     }
-  }, [initialData, formData]);
+  }, [initialData]);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setIsAnimating(true);
+    } else {
+      const timer = setTimeout(() => setIsAnimating(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   const categories = [
     { value: 'breakfast', label: 'Breakfast' },
@@ -115,11 +153,23 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setImageFiles(prev => [...prev, ...files]);
+      const newPreviews = files.map(file => URL.createObjectURL(file));
+      setImagePreviews(prev => [...prev, ...newPreviews]);
+      toast.success(`${files.length} image${files.length !== 1 ? 's' : ''} added! 📸`);
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => {
+      // Revoke the URL to free up memory
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+    toast.info('Image removed 🗑️');
   };
 
   const handleImageUpload = async (file: File) => {
@@ -135,40 +185,86 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
     return data.secure_url;
   };
 
+  const handleMultipleImageUpload = async (files: File[]) => {
+    const uploadPromises = files.map(file => handleImageUpload(file));
+    return await Promise.all(uploadPromises);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
     try {
-      await onSubmit(formData);
+      let imageUrls: string[] = [];
+      
+      // Upload new images if any
+      if (imageFiles.length > 0) {
+        imageUrls = await handleMultipleImageUpload(imageFiles);
+      }
+      
+      // Include existing images from initial data
+      const existingImages = imagePreviews.filter(preview => 
+        !preview.startsWith('blob:') // Filter out blob URLs (new uploads)
+      );
+      
+      const allImages = [...existingImages, ...imageUrls];
+      
+      if (allImages.length === 0) {
+        const errorMsg = 'Please upload at least one recipe image.';
+        setError(errorMsg);
+        toast.error(errorMsg);
+        setIsSubmitting(false);
+        return;
+      }
+
+      await onSubmit({
+        ...formData,
+        image: allImages[0], // Keep primary image for backward compatibility
+        images: allImages, // New array of all images
+        prepTime: Number(formData.prepTime),
+        serves: Number(formData.serves),
+        calories: formData.calories ? Number(formData.calories) : undefined
+      });
+      toast.success('Recipe submitted successfully! 🎉');
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to submit recipe');
+      let errorMsg = 'Failed to submit recipe';
+      if (err instanceof Error) errorMsg = err.message;
+      if (typeof err === 'object' && err && 'message' in err) {
+        errorMsg = (err as any).message;
+      }
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !isAnimating) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <>
+      {/* Sliding Panel */}
+      <div className={`fixed top-0 right-0 h-full w-full md:w-1/2 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}>
+        <div className="h-full flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
             Add New Recipe
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         {/* Form */}
+        <div className="flex-1 overflow-y-auto">
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
@@ -182,7 +278,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 placeholder="Enter recipe title..."
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
                 required
               />
@@ -198,7 +294,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Describe your recipe..."
                 rows={3}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
                 required
               />
@@ -207,26 +303,51 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
             {/* Image Upload */}
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                Recipe Image *
+                Recipe Images * (You can select multiple images)
               </label>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
-                  style={{ fontFamily: 'Outfit, sans-serif' }}
-                  required={!imageFile}
-                />
-                {imagePreview && (
-                  // <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg border" />
-                  <img
-                    src={imagePreview}
-                    alt="Recipe Preview"
-                    className="w-full h-48 object-cover rounded-lg mb-4"
-                  />
-                )}
-              </div>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                style={{ fontFamily: 'Outfit, sans-serif' }}
+                required={imagePreviews.length === 0}
+              />
+              
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                    Image Previews ({imagePreviews.length} image{imagePreviews.length !== 1 ? 's' : ''})
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative">
+                        <Image
+                          src={preview}
+                          alt={`Recipe Preview ${index + 1}`}
+                          width={200}
+                          height={128}
+                          className="w-full h-32 object-cover border border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white p-1 hover:bg-red-600 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        {index === 0 && (
+                          <div className="absolute bottom-1 left-1 bg-green-500 text-white text-xs px-2 py-1" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                            Primary
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Prep Time */}
@@ -240,7 +361,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
                 onChange={(e) => handleInputChange('prepTime', e.target.value)}
                 placeholder="30"
                 min="1"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
                 required
               />
@@ -257,7 +378,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
                 onChange={(e) => handleInputChange('serves', e.target.value)}
                 placeholder="4"
                 min="1"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
                 required
               />
@@ -274,7 +395,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
                 onChange={(e) => handleInputChange('calories', e.target.value)}
                 placeholder="250"
                 min="1"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
               />
             </div>
@@ -287,7 +408,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
               <select
                 value={formData.difficulty}
                 onChange={(e) => handleInputChange('difficulty', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
                 required
               >
@@ -307,7 +428,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
               <select
                 value={formData.category}
                 onChange={(e) => handleInputChange('category', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
                 required
               >
@@ -327,7 +448,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
               <select
                 value={formData.cuisine}
                 onChange={(e) => handleInputChange('cuisine', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
                 required
               >
@@ -347,7 +468,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
               <select
                 value={formData.diet}
                 onChange={(e) => handleInputChange('diet', e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
                 required
               >
@@ -373,7 +494,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
                   value={ingredient}
                   onChange={(e) => handleArrayChange('ingredients', index, e.target.value)}
                   placeholder={`Ingredient ${index + 1}`}
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                  className="flex-1 p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                   style={{ fontFamily: 'Outfit, sans-serif' }}
                   required={index === 0}
                 />
@@ -381,7 +502,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
                   <button
                     type="button"
                     onClick={() => removeArrayItem('ingredients', index)}
-                    className="p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-3 text-red-500 hover:bg-red-50 transition-colors"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
@@ -406,7 +527,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
             </label>
             {formData.instructions.map((instruction, index) => (
               <div key={index} className="flex gap-2 mb-2">
-                <div className="flex-shrink-0 w-8 h-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600 font-semibold text-sm">
+                <div className="flex-shrink-0 w-8 h-10 bg-green-100 flex items-center justify-center text-green-600 font-semibold text-sm">
                   {index + 1}
                 </div>
                 <textarea
@@ -414,7 +535,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
                   onChange={(e) => handleArrayChange('instructions', index, e.target.value)}
                   placeholder={`Step ${index + 1}`}
                   rows={2}
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+                  className="flex-1 p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                   style={{ fontFamily: 'Outfit, sans-serif' }}
                   required={index === 0}
                 />
@@ -422,7 +543,7 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
                   <button
                     type="button"
                     onClick={() => removeArrayItem('instructions', index)}
-                    className="p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-3 text-red-500 hover:bg-red-50 transition-colors"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
@@ -440,26 +561,43 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
             </button>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 border border-red-300 text-sm">
+              {error}
+            </div>
+          )}
+
           {/* Submit Buttons */}
           <div className="flex gap-4 mt-8 pt-6 border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
               style={{ fontFamily: 'Caveat, cursive' }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-semibold"
+              className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white transition-colors font-semibold flex items-center justify-center"
               style={{ fontFamily: 'Caveat, cursive' }}
+              disabled={isSubmitting}
             >
-              Publish Recipe
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <ButtonLoader />
+                  <span>Publishing...</span>
+                </div>
+              ) : (
+                'Publish Recipe'
+              )}
             </button>
           </div>
         </form>
+        </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,9 +1,67 @@
+'use client';
+
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Clock, ArrowRight } from 'lucide-react';
 
+interface Recipe {
+  _id: string;
+  title: string;
+  description: string;
+  image: string;
+  prepTime: number;
+  averageRating: number;
+  category: string;
+  difficulty: string;
+  serves: number;
+  likes: number;
+}
+
 export default function PopularRecipes() {
+  const [recipes, setRecipes] = React.useState<Recipe[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchPopularRecipes = async () => {
+      try {
+        const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${base}/api/recipes?limit=6&sort=likes`);
+        if (res.ok) {
+          const data = await res.json();
+          // Handle different response formats
+          let recipesArray: Recipe[] = [];
+          if (Array.isArray(data)) {
+            recipesArray = data;
+          } else if (data && Array.isArray(data.recipes)) {
+            recipesArray = data.recipes;
+          } else if (data && Array.isArray(data.data)) {
+            recipesArray = data.data;
+          } else {
+            console.warn('Unexpected response format:', data);
+            recipesArray = [];
+          }
+          setRecipes(recipesArray.slice(0, 6)); // Take first 6 recipes
+        }
+      } catch (error) {
+        console.error('Failed to fetch popular recipes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPopularRecipes();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-20 px-8 bg-white">
+        <div className="max-w-6xl mx-auto text-center">
+          <p className="text-gray-600" style={{ fontFamily: 'Outfit, sans-serif' }}>Loading popular recipes...</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-20 px-8 bg-white">
       <div className="max-w-6xl mx-auto">
@@ -19,185 +77,46 @@ export default function PopularRecipes() {
 
         {/* Recipe Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Recipe Card 1 */}
-          <div className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-            <div className="relative h-64 overflow-hidden">
-              <Image
-                src="https://themewagon.github.io/delicious/img/bg-img/r1.jpg"
-                alt="Delicious Homemade Burger"
-                fill
-                className="object-cover transition-transform duration-300 hover:scale-110"
-              />
-            </div>
-            <div className="p-6">
-              <h3 className="text-2xl font-bold mb-2 text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
-                Delicious Homemade Burger
-              </h3>
-              <p className="text-gray-600 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                A juicy, flavorful burger made with fresh ingredients and secret seasonings.
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 text-green-600 mr-1" />
-                  <span className="text-green-600 font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>15 min</span>
+          {recipes.map((recipe) => (
+            <div key={recipe._id} className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+              <div className="relative h-64 overflow-hidden">
+                <Image
+                  src={recipe.image || 'https://via.placeholder.com/500x300/e5e7eb/6b7280?text=Recipe+Image'}
+                  alt={recipe.title}
+                  fill
+                  className="object-cover transition-transform duration-300 hover:scale-110"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://via.placeholder.com/500x300/e5e7eb/6b7280?text=Recipe+Image';
+                  }}
+                />
+              </div>
+              <div className="p-6">
+                <h3 className="text-2xl font-bold mb-2 text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
+                  {recipe.title}
+                </h3>
+                <p className="text-gray-600 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  {recipe.description}
+                </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 text-green-600 mr-1" />
+                    <span className="text-green-600 font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                      {recipe.prepTime} min
+                    </span>
+                  </div>
+                  <Link
+                    href={`/recipes/${recipe._id}`}
+                    className="text-green-600 hover:text-green-700 font-semibold flex items-center gap-1"
+                    style={{ fontFamily: 'Caveat, cursive' }}
+                  >
+                    View Recipe
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
                 </div>
-                <button className="text-green-600 hover:text-green-700 font-semibold flex items-center gap-1" style={{ fontFamily: 'Caveat, cursive' }}>
-                  View Recipe
-                  <ArrowRight className="w-4 h-4" />
-                </button>
               </div>
             </div>
-          </div>
-
-          {/* Recipe Card 2 */}
-          <div className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-            <div className="relative h-64 overflow-hidden">
-              <Image
-                src="https://themewagon.github.io/delicious/img/bg-img/r2.jpg"
-                alt="Fresh Garden Salad"
-                fill
-                className="object-cover transition-transform duration-300 hover:scale-110"
-              />
-            </div>
-            <div className="p-6">
-              <h3 className="text-2xl font-bold mb-2 text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
-                Fresh Garden Salad
-              </h3>
-              <p className="text-gray-600 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                A refreshing mix of seasonal vegetables with homemade vinaigrette.
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 text-green-600 mr-1" />
-                  <span className="text-green-600 font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>10 min</span>
-                </div>
-                <button className="text-green-600 hover:text-green-700 font-semibold flex items-center gap-1" style={{ fontFamily: 'Caveat, cursive' }}>
-                  View Recipe
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Recipe Card 3 */}
-          <div className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-            <div className="relative h-64 overflow-hidden">
-              <Image
-                src="https://themewagon.github.io/delicious/img/bg-img/r3.jpg"
-                alt="Chocolate Cake Delight"
-                fill
-                className="object-cover transition-transform duration-300 hover:scale-110"
-              />
-            </div>
-            <div className="p-6">
-              <h3 className="text-2xl font-bold mb-2 text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
-                Chocolate Cake Delight
-              </h3>
-              <p className="text-gray-600 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                Rich, moist chocolate cake that melts in your mouth with every bite.
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 text-green-600 mr-1" />
-                  <span className="text-green-600 font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>45 min</span>
-                </div>
-                <button className="text-green-600 hover:text-green-700 font-semibold flex items-center gap-1" style={{ fontFamily: 'Caveat, cursive' }}>
-                  View Recipe
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Recipe Card 4 */}
-          <div className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-            <div className="relative h-64 overflow-hidden">
-              <Image
-                src="https://themewagon.github.io/delicious/img/bg-img/r4.jpg"
-                alt="Creamy Pasta Primavera"
-                fill
-                className="object-cover transition-transform duration-300 hover:scale-110"
-              />
-            </div>
-            <div className="p-6">
-              <h3 className="text-2xl font-bold mb-2 text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
-                Creamy Pasta Primavera
-              </h3>
-              <p className="text-gray-600 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                Perfectly cooked pasta with fresh vegetables in a creamy sauce.
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 text-green-600 mr-1" />
-                  <span className="text-green-600 font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>25 min</span>
-                </div>
-                <button className="text-green-600 hover:text-green-700 font-semibold flex items-center gap-1" style={{ fontFamily: 'Caveat, cursive' }}>
-                  View Recipe
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Recipe Card 5 */}
-          <div className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-            <div className="relative h-64 overflow-hidden">
-              <Image
-                src="https://themewagon.github.io/delicious/img/bg-img/r5.jpg"
-                alt="Grilled Salmon"
-                fill
-                className="object-cover transition-transform duration-300 hover:scale-110"
-              />
-            </div>
-            <div className="p-6">
-              <h3 className="text-2xl font-bold mb-2 text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
-                Grilled Salmon
-              </h3>
-              <p className="text-gray-600 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                Perfectly seasoned salmon grilled to perfection with lemon herbs.
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 text-green-600 mr-1" />
-                  <span className="text-green-600 font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>20 min</span>
-                </div>
-                <button className="text-green-600 hover:text-green-700 font-semibold flex items-center gap-1" style={{ fontFamily: 'Caveat, cursive' }}>
-                  View Recipe
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Recipe Card 6 */}
-          <div className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-            <div className="relative h-64 overflow-hidden">
-              <Image
-                src="https://themewagon.github.io/delicious/img/bg-img/r6.jpg"
-                alt="Fresh Berry Smoothie"
-                fill
-                className="object-cover transition-transform duration-300 hover:scale-110"
-              />
-            </div>
-            <div className="p-6">
-              <h3 className="text-2xl font-bold mb-2 text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
-                Fresh Berry Smoothie
-              </h3>
-              <p className="text-gray-600 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                A healthy blend of fresh berries, yogurt, and natural sweeteners.
-              </p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 text-green-600 mr-1" />
-                  <span className="text-green-600 font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>5 min</span>
-                </div>
-                <button className="text-green-600 hover:text-green-700 font-semibold flex items-center gap-1" style={{ fontFamily: 'Caveat, cursive' }}>
-                  View Recipe
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* View All Button */}

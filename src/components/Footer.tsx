@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
+import { Heart, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, Copyright } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -8,9 +8,16 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand Column */}
           <div className="lg:col-span-2">
-            <h3 className="text-3xl font-bold mb-4 text-green-400" style={{ fontFamily: 'Caveat, cursive' }}>
-              J&apos;s Recipe Box
-            </h3>
+            <div className="flex items-center gap-3 mb-4">
+              <img 
+                src="/logo.png" 
+                alt="J's Recipe Box Logo" 
+                className="w-10 h-10"
+              />
+              <h3 className="text-3xl font-bold text-green-400" style={{ fontFamily: 'Caveat, cursive' }}>
+                J&apos;s Recipe Box
+              </h3>
+            </div>
             <p className="text-gray-300 mb-6 max-w-md" style={{ fontFamily: 'Outfit, sans-serif' }}>
               Where every recipe tells a story. Join our community of food lovers and discover incredible recipes from around the world.
             </p>
@@ -72,7 +79,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-800 mt-12 pt-8 text-center">
           <p className="text-gray-400" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            © 2025 J&apos;s Recipe Box. All rights reserved. Made with <Heart className="w-4 h-4 text-red-500 inline fill-current" /> for food lovers everywhere.
+            <Copyright className="w-4 h-4 inline mr-1" /> {new Date().getFullYear()} J&apos;s Recipe Box. All rights reserved. Made with <Heart className="w-4 h-4 text-green-400 inline fill-current" /> for food lovers everywhere.
           </p>
         </div>
       </div>

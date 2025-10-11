@@ -4,8 +4,15 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import ButtonLoader from '@/components/ButtonLoader';
+import DebugAuth from '@/components/DebugAuth';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
   const [form, setForm] = React.useState({
     email: '',
@@ -30,6 +37,7 @@ export default function LoginPage() {
     setSuccess('');
     if (!form.email || !form.password) {
       setError('Email and password are required.');
+      toast.error('Email and password are required.');
       return;
     }
     setLoading(true);
@@ -44,14 +52,39 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Login failed');
-      setSuccess('Login successful!');
-      // Store token (localStorage or cookie)
-      localStorage.setItem('token', data.token);
-      // Optionally redirect or update app state here
+      setSuccess('Login successful! Redirecting...');
+      toast.success('Login successful! Redirecting...');
+
+      // Fetch current user profile to reliably get role and other fields
+      const profileRes = await fetch('http://localhost:5000/api/users/me', {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${data.token}`,
+        },
+      });
+      const me = await profileRes.json();
+
+      // Persist auth with accurate role
+      login({
+        fullName: me.fullName || data.fullName || (data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : ''),
+        email: me.email || data.email,
+        totalFavorites: me.totalFavorites ?? data.totalFavorites ?? 0,
+        role: me.role || data.role || 'user',
+      }, data.token);
+
+      const role = (me.role || data.role || '').toLowerCase();
+      setTimeout(() => {
+        if (role === 'admin') {
+          router.replace('/admin');
+        } else {
+          router.replace('/profile');
+        }
+      }, 800);
     } catch (err: unknown) {
       let errorMsg = 'Login failed';
       if (err instanceof Error) errorMsg = err.message;
       setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -76,7 +109,7 @@ export default function LoginPage() {
           {/* Image Side */}
           <div className="relative">
             <Image
-              src="https://themewagon.github.io/delicious/img/bg-img/bg7.jpg"
+              src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=600&fit=crop"
               alt="Delicious food"
               fill
               className="object-cover"
@@ -88,9 +121,16 @@ export default function LoginPage() {
                 <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: 'Caveat, cursive' }}>
                   Welcome Back to
                 </h2>
-                <h3 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-300 via-green-400 to-green-500 bg-clip-text text-transparent" style={{ fontFamily: 'Caveat, cursive' }}>
-                  J&apos;s Recipe Box
-                </h3>
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <img 
+                    src="/logo.png" 
+                    alt="J's Recipe Box Logo" 
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
+                  <h3 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-300 via-green-400 to-green-500 bg-clip-text text-transparent" style={{ fontFamily: 'Caveat, cursive' }}>
+                    J&apos;s Recipe Box
+                  </h3>
+                </div>
               </div>
             </div>
           </div>
@@ -125,7 +165,7 @@ export default function LoginPage() {
                       id="email"
                       value={form.email}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
                       placeholder="Enter your email"
                       style={{ fontFamily: 'Outfit, sans-serif' }}
                     />
@@ -146,7 +186,7 @@ export default function LoginPage() {
                       id="password"
                       value={form.password}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
+                      className="w-full pl-10 pr-12 py-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-gray-900 placeholder-gray-500"
                       placeholder="Enter your password"
                       style={{ fontFamily: 'Outfit, sans-serif' }}
                     />
@@ -191,11 +231,18 @@ export default function LoginPage() {
                 {/* Sign In Button */}
                 <button
                   type="submit"
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-300 shadow-lg hover:shadow-xl"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 font-semibold transition-colors duration-300 shadow-lg hover:shadow-xl flex items-center justify-center"
                   style={{ fontFamily: 'Caveat, cursive' }}
                   disabled={loading}
                 >
-                  {loading ? 'Signing In...' : 'Sign In'}
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <ButtonLoader />
+                      <span>Signing In...</span>
+                    </div>
+                  ) : (
+                    'Sign In'
+                  )}
                 </button>
 
                 {/* Sign Up Link */}
@@ -212,6 +259,9 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Debug Component - Remove this in production */}
+      <DebugAuth />
     </div>
   );
 }

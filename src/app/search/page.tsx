@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Search, Clock, Users, ChefHat, Heart, ArrowLeft, Star, ArrowRight, Filter } from 'lucide-react';
+import { Search, Clock, ChefHat, Heart, ArrowLeft, Star, ArrowRight, Filter } from 'lucide-react';
 import Pagination from '@/components/Pagination';
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [ingredientFilter, setIngredientFilter] = React.useState('');
@@ -666,5 +666,13 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div>Loading search...</div></div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }

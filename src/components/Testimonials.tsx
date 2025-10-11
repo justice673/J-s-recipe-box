@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star } from 'lucide-react';
+import { Star, User } from 'lucide-react';
 
 export default function Testimonials() {
   return (
@@ -27,7 +27,7 @@ export default function Testimonials() {
             </p>
             <div className="flex items-center">
               <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center">
-                <span className="text-green-700 font-bold" style={{ fontFamily: 'Caveat, cursive' }}>S</span>
+                <User className="w-5 h-5 text-green-700" />
               </div>
               <div className="ml-3">
                 <p className="font-semibold text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>Sarah Johnson</p>
@@ -48,7 +48,7 @@ export default function Testimonials() {
             </p>
             <div className="flex items-center">
               <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center">
-                <span className="text-green-700 font-bold" style={{ fontFamily: 'Caveat, cursive' }}>M</span>
+                <User className="w-5 h-5 text-green-700" />
               </div>
               <div className="ml-3">
                 <p className="font-semibold text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>Mike Chen</p>
@@ -69,7 +69,7 @@ export default function Testimonials() {
             </p>
             <div className="flex items-center">
               <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center">
-                <span className="text-green-700 font-bold" style={{ fontFamily: 'Caveat, cursive' }}>E</span>
+                <User className="w-5 h-5 text-green-700" />
               </div>
               <div className="ml-3">
                 <p className="font-semibold text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>Emily Rodriguez</p>

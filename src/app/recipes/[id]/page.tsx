@@ -1,120 +1,236 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Clock, Users, ChefHat, Heart, ArrowLeft, Star, ArrowRight } from 'lucide-react';
+import { Clock, Users, ChefHat, Heart, ArrowLeft, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
+import Loader from '@/components/Loader';
+import ButtonLoader from '@/components/ButtonLoader';
+
+interface Recipe {
+  _id: string;
+  title: string;
+  description: string;
+  images: string[];
+  time: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  category: string;
+  serves: number;
+  rating: number;
+  reviews: number;
+  prepTime: string;
+  cookTime: string;
+  ingredients: string[];
+  instructions: string[];
+  nutrition: {
+    calories: number;
+    protein: string;
+    carbs: string;
+    fat: string;
+  };
+  author: {
+    fullName: string;
+    email: string;
+  };
+  createdAt: string;
+  liked?: boolean;
+}
 
 interface RecipeDetailsProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
-  const [isLiked, setIsLiked] = React.useState(false);
-  const [showRateModal, setShowRateModal] = React.useState(false);
-  const [userRating, setUserRating] = React.useState(0);
-  const [rateStatus, setRateStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [rateMessage, setRateMessage] = React.useState('');
+  const { isLoggedIn, user } = useAuth();
+  const resolvedParams = use(params);
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [similarRecipes, setSimilarRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [showRateModal, setShowRateModal] = useState(false);
+  const [userRating, setUserRating] = useState(0);
+  const [rateStatus, setRateStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [rateMessage, setRateMessage] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
-  // Sample recipe data - in a real app, this would come from an API based on params.id
-  const recipe = {
-    id: parseInt(params.id),
-    title: 'Delicious Homemade Burger',
-    description: 'A juicy, flavorful burger made with fresh ingredients and secret seasonings that will make your taste buds dance with joy.',
-    image: 'https://themewagon.github.io/delicious/img/bg-img/r1.jpg',
-    time: '25 min',
-    difficulty: 'easy',
-    category: 'lunch',
-    serves: 4,
-    rating: 4.8,
-    reviews: 127,
-    prepTime: '15 min',
-    cookTime: '10 min',
-    ingredients: [
-      '500g ground beef (80/20 lean)',
-      '4 brioche burger buns',
-      '4 slices of cheddar cheese',
-      '1 large tomato, sliced',
-      '1 red onion, sliced',
-      '4 lettuce leaves',
-      '2 tbsp mayonnaise',
-      '1 tbsp ketchup',
-      '1 tbsp mustard',
-      'Salt and pepper to taste',
-      '1 tbsp olive oil'
-    ],
-    instructions: [
-      'Season the ground beef with salt and pepper, then form into 4 equal patties.',
-      'Heat olive oil in a large skillet or grill pan over medium-high heat.',
-      'Cook the patties for 3-4 minutes per side, adding cheese in the last minute.',
-      'Toast the burger buns lightly in the same pan.',
-      'Spread mayonnaise, ketchup, and mustard on the bottom bun.',
-      'Layer with lettuce, tomato, onion, and the cooked patty.',
-      'Top with the other half of the bun and serve immediately.',
-      'Enjoy your delicious homemade burger!'
-    ],
-    nutrition: {
-      calories: 650,
-      protein: '35g',
-      carbs: '45g',
-      fat: '38g'
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Fetch recipe data
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const fetchRecipe = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json'
+        };
+        
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`http://localhost:5000/api/recipes/${resolvedParams.id}`, {
+          headers
+        });
+
+        if (!response.ok) {
+          throw new Error('Recipe not found');
+        }
+
+        const data = await response.json();
+        setRecipe(data);
+        setIsLiked(data.liked || false);
+
+        // Fetch similar recipes
+        const similarResponse = await fetch(`http://localhost:5000/api/recipes?category=${data.category}&limit=3`, {
+          headers
+        });
+        
+        if (similarResponse.ok) {
+          const similarData = await similarResponse.json();
+          setSimilarRecipes(similarData.recipes.filter((r: Recipe) => r._id !== resolvedParams.id).slice(0, 3));
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to load recipe');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipe();
+  }, [resolvedParams.id, mounted]);
+
+  // Handle like/unlike
+  const handleLike = async () => {
+    if (!isLoggedIn) {
+      toast.error('Please log in to like recipes');
+      return;
+    }
+
+    try {
+      if (typeof window === 'undefined') return;
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/recipes/${resolvedParams.id}/like`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like recipe');
+      }
+
+      setIsLiked(!isLiked);
+      toast.success(isLiked ? 'Removed from favorites' : 'Added to favorites');
+    } catch (err: unknown) {
+      toast.error('Failed to update favorites');
     }
   };
 
-  // Similar recipes data
-  const similarRecipes = [
-    {
-      id: 2,
-      title: 'BBQ Chicken Burger',
-      image: 'https://themewagon.github.io/delicious/img/bg-img/r2.jpg',
-      time: '30 min',
-      rating: 4.6
-    },
-    {
-      id: 3,
-      title: 'Veggie Black Bean Burger',
-      image: 'https://themewagon.github.io/delicious/img/bg-img/r3.jpg',
-      time: '20 min',
-      rating: 4.4
-    },
-    {
-      id: 4,
-      title: 'Turkey Avocado Burger',
-      image: 'https://themewagon.github.io/delicious/img/bg-img/r4.jpg',
-      time: '25 min',
-      rating: 4.7
-    }
-  ];
-
-  const isLoggedIn = typeof window !== 'undefined' && !!localStorage.getItem('token');
-
+  // Handle rating and review
   const handleRateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLoggedIn) {
+      toast.error('Please log in to write a review');
+      return;
+    }
+
+    if (!reviewComment.trim()) {
+      toast.error('Please write a comment');
+      return;
+    }
+
     setRateStatus('loading');
     setRateMessage('');
+    
     try {
+      if (typeof window === 'undefined') return;
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('You must be logged in to rate.');
-      const res = await fetch(`http://localhost:5000/api/recipes/${recipe.id}/rate`, {
+      const response = await fetch(`http://localhost:5000/api/reviews/${resolvedParams.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ rating: userRating })
+        body: JSON.stringify({ 
+          rating: userRating,
+          comment: reviewComment
+        })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to rate recipe');
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to submit review');
+      }
+
       setRateStatus('success');
-      setRateMessage('Thank you for rating!');
+      setRateMessage('Thank you for your review!');
+      toast.success('Review submitted successfully!');
       setShowRateModal(false);
-    } catch (err: any) {
+      setUserRating(0);
+      setReviewComment('');
+      
+      // Refresh recipe data
+      window.location.reload();
+    } catch (err: unknown) {
       setRateStatus('error');
-      setRateMessage(err.message || 'Failed to rate recipe');
+      setRateMessage(err instanceof Error ? err.message : 'Failed to submit review');
+      toast.error('Failed to submit review');
     }
   };
+
+  // Image navigation
+  const nextImage = () => {
+    if (recipe && recipe.images.length > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % recipe.images.length);
+    }
+  };
+
+  const prevImage = () => {
+    if (recipe && recipe.images.length > 1) {
+      setCurrentImageIndex((prev) => (prev - 1 + recipe.images.length) % recipe.images.length);
+    }
+  };
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return <Loader />;
+  }
+
+  if (loading) {
+    return <Loader />;
+  }
+
+  if (error || !recipe) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 text-lg mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+            {error || 'Recipe not found'}
+          </p>
+          <Link href="/recipes" className="text-green-600 hover:text-green-700 font-semibold">
+            Back to Recipes
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -148,40 +264,98 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           
-          {/* Recipe Image */}
-          <div className="relative h-96 rounded-lg overflow-hidden shadow-lg">
-            <Image
-              src={recipe.image}
-              alt={recipe.title}
-              fill
-              className="object-cover"
-            />
-            <button 
-              onClick={() => {
-                if (isLoggedIn) setShowRateModal(true);
-                else alert('Please log in to like or rate recipes.');
-              }}
-              className="absolute top-4 right-4 p-3 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-lg"
-              title={isLoggedIn ? 'Rate & Like' : 'Login required'}
-            >
-              <Heart className={`w-6 h-6 ${isLiked ? 'text-green-500 fill-current' : 'text-gray-600'}`} />
-            </button>
-            <div className="absolute bottom-4 left-4">
-              <span className="px-3 py-1 bg-green-600 text-white text-sm font-semibold rounded-full capitalize" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                {recipe.category}
-              </span>
+          {/* Recipe Image Gallery */}
+          <div className="space-y-4">
+            {/* Main Image */}
+            <div className="relative h-96 rounded-lg overflow-hidden shadow-lg">
+              <Image
+                src={recipe.images && recipe.images.length > 0 ? recipe.images[currentImageIndex] : 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop'}
+                alt={recipe.title}
+                fill
+                className="object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop';
+                }}
+              />
+              
+              {/* Like Button */}
+              <button 
+                onClick={handleLike}
+                className="absolute top-4 right-4 p-3 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-lg"
+                title={isLoggedIn ? (isLiked ? 'Remove from favorites' : 'Add to favorites') : 'Login required'}
+              >
+                <Heart className={`w-6 h-6 ${isLiked ? 'text-green-500 fill-current' : 'text-gray-600'}`} />
+              </button>
+              
+              {/* Category Badge */}
+              <div className="absolute bottom-4 left-4">
+                <span className="px-3 py-1 bg-green-600 text-white text-sm font-semibold rounded-full capitalize font-outfit">
+                  {recipe.category}
+                </span>
+              </div>
+              
+              {/* Rate Button */}
+              {isLoggedIn && (
+                <button
+                  onClick={() => setShowRateModal(true)}
+                  className="absolute top-4 left-4 p-3 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-lg"
+                  title="Rate this recipe"
+                >
+                  <Star className="w-6 h-6 text-yellow-500" />
+                </button>
+              )}
             </div>
+
+            {/* Thumbnail Images - Only show if multiple images */}
+            {recipe.images && recipe.images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {recipe.images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all duration-200 ${
+                      index === currentImageIndex 
+                        ? 'ring-3 ring-green-500 ring-offset-2' 
+                        : 'hover:ring-2 hover:ring-green-300 hover:ring-offset-1'
+                    }`}
+                  >
+                    <Image
+                      src={image}
+                      alt={`${recipe.title} - Image ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop';
+                      }}
+                    />
+                    {/* Active overlay */}
+                    {index === currentImageIndex && (
+                      <div className="absolute inset-0 bg-green-500/20" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Recipe Info */}
           <div className="space-y-6">
             <div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-3" style={{ fontFamily: 'Caveat, cursive' }}>
+              <h2 className="text-3xl font-bold text-gray-800 mb-3 font-caveat">
                 {recipe.title}
               </h2>
-              <p className="text-gray-600 text-lg leading-relaxed" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <p className="text-gray-600 text-lg leading-relaxed font-outfit">
                 {recipe.description}
               </p>
+            </div>
+
+            {/* Author & Date */}
+            <div className="flex items-center gap-4 text-sm text-gray-500" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <span>By {recipe.author?.fullName || 'Anonymous'}</span>
+              <span>•</span>
+              <span>{new Date(recipe.createdAt).toLocaleDateString()}</span>
             </div>
 
             {/* Rating */}
@@ -190,11 +364,11 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star 
                     key={star} 
-                    className={`w-5 h-5 ${star <= Math.floor(recipe.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                    className={`w-5 h-5 ${star <= Math.floor(recipe.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                   />
                 ))}
                 <span className="ml-2 text-lg font-semibold text-gray-700" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                  {recipe.rating} ({recipe.reviews} reviews)
+                  {recipe.rating?.toFixed(1) || '0.0'} ({recipe.reviews || 0} reviews)
                 </span>
               </div>
             </div>
@@ -229,7 +403,9 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
                   <span className="text-white text-xs font-bold">Cal</span>
                 </div>
                 <p className="text-sm text-gray-500" style={{ fontFamily: 'Outfit, sans-serif' }}>Calories</p>
-                <p className="font-semibold text-gray-800" style={{ fontFamily: 'Outfit, sans-serif' }}>{recipe.nutrition.calories}</p>
+                <p className="font-semibold text-gray-800" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  {recipe.nutrition?.calories || 'N/A'}
+                </p>
               </div>
             </div>
           </div>
@@ -243,14 +419,16 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
               Ingredients
             </h3>
             <ul className="space-y-3">
-              {recipe.ingredients.map((ingredient, index) => (
+              {recipe.ingredients?.map((ingredient, index) => (
                 <li key={index} className="flex items-start gap-3">
                   <span className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0"></span>
                   <span className="text-gray-700" style={{ fontFamily: 'Outfit, sans-serif' }}>
                     {ingredient}
                   </span>
                 </li>
-              ))}
+              )) || (
+                <li className="text-gray-500 italic">No ingredients listed</li>
+              )}
             </ul>
           </div>
 
@@ -260,7 +438,7 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
               Instructions
             </h3>
             <ol className="space-y-4">
-              {recipe.instructions.map((instruction, index) => (
+              {recipe.instructions?.map((instruction, index) => (
                 <li key={index} className="flex gap-4">
                   <span className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0">
                     {index + 1}
@@ -269,98 +447,237 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
                     {instruction}
                   </p>
                 </li>
-              ))}
+              )) || (
+                <li className="text-gray-500 italic">No instructions provided</li>
+              )}
             </ol>
           </div>
         </div>
 
-        {/* Similar Recipes */}
-        <div className="mt-12">
-          <h3 className="text-3xl font-bold text-gray-800 mb-8 text-center" style={{ fontFamily: 'Caveat, cursive' }}>
-            Similar Recipes
+        {/* Nutritional Information */}
+        {recipe.nutrition && (
+          <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-2xl font-bold text-gray-800 mb-4" style={{ fontFamily: 'Caveat, cursive' }}>
+              Nutrition Information
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {recipe.nutrition.calories && (
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gray-800">{recipe.nutrition.calories}</p>
+                  <p className="text-sm text-gray-500" style={{ fontFamily: 'Outfit, sans-serif' }}>Calories</p>
+                </div>
+              )}
+              {recipe.nutrition.protein && (
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gray-800">{recipe.nutrition.protein}</p>
+                  <p className="text-sm text-gray-500" style={{ fontFamily: 'Outfit, sans-serif' }}>Protein</p>
+                </div>
+              )}
+              {recipe.nutrition.carbs && (
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gray-800">{recipe.nutrition.carbs}</p>
+                  <p className="text-sm text-gray-500" style={{ fontFamily: 'Outfit, sans-serif' }}>Carbs</p>
+                </div>
+              )}
+              {recipe.nutrition.fat && (
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gray-800">{recipe.nutrition.fat}</p>
+                  <p className="text-sm text-gray-500" style={{ fontFamily: 'Outfit, sans-serif' }}>Fat</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Reviews Section */}
+        <div className="mt-12 bg-white rounded-lg shadow-lg p-6">
+          <h3 className="text-3xl font-bold text-gray-800 mb-6 font-caveat">
+            Reviews & Ratings
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {similarRecipes.map((similar) => (
-              <Link key={similar.id} href={`/recipes/${similar.id}`}>
-                <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden cursor-pointer">
-                  <div className="relative h-48 overflow-hidden">
-                    <Image
-                      src={similar.image}
-                      alt={similar.title}
-                      fill
-                      className="object-cover transition-transform duration-300 hover:scale-110"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h4 className="text-lg font-bold text-gray-800 mb-2" style={{ fontFamily: 'Caveat, cursive' }}>
-                      {similar.title}
-                    </h4>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 text-green-600 mr-1" />
-                        <span className="text-green-600 font-semibold text-sm" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                          {similar.time}
-                        </span>
-                      </div>
-                      <div className="flex items-center">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
-                        <span className="text-gray-600 text-sm" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                          {similar.rating}
-                        </span>
+          
+          {/* Add Review Button */}
+          {isLoggedIn ? (
+            <button
+              onClick={() => setShowRateModal(true)}
+              className="mb-6 bg-green-600 hover:bg-green-700 text-white py-2 px-6 font-semibold transition-colors"
+              style={{ fontFamily: 'Outfit, sans-serif' }}
+            >
+              Write a Review
+            </button>
+          ) : (
+            <p className="mb-6 text-gray-600" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <Link href="/login" className="text-green-600 hover:text-green-700 font-semibold">
+                Login
+              </Link> to write a review
+            </p>
+          )}
+
+          {/* Reviews will be loaded here - placeholder for now */}
+          <div className="space-y-4">
+            <div className="border-l-4 border-green-500 pl-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
+                  <span className="font-semibold text-gray-800" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                    Sample Review
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className="w-4 h-4 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+              </div>
+              <p className="text-gray-700 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                This is a sample review. In the next update, this will show real user reviews.
+              </p>
+              <span className="text-sm text-gray-500">2 days ago</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Similar Recipes */}
+        {similarRecipes.length > 0 && (
+          <div className="mt-12">
+            <h3 className="text-3xl font-bold text-gray-800 mb-8 text-center font-caveat">
+              Similar Recipes
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {similarRecipes.map((similar) => (
+                <Link key={similar._id} href={`/recipes/${similar._id}`}>
+                  <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden cursor-pointer">
+                    <div className="relative h-48 overflow-hidden">
+                      <Image
+                        src={similar.images && similar.images.length > 0 ? similar.images[0] : 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop'}
+                        alt={similar.title}
+                        fill
+                        className="object-cover transition-transform duration-300 hover:scale-110"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop';
+                        }}
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h4 className="text-lg font-bold text-gray-800 mb-2 font-caveat">
+                        {similar.title}
+                      </h4>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Clock className="w-4 h-4 text-green-600 mr-1" />
+                          <span className="text-green-600 font-semibold text-sm font-outfit">
+                            {similar.time}
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
+                          <span className="text-gray-600 text-sm font-outfit">
+                            {similar.rating?.toFixed(1) || '0.0'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Rate & Like Modal */}
+      {/* Write Review Modal */}
       {showRateModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/40">
-          <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
-              Rate & Like Recipe
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center" style={{ fontFamily: 'Caveat, cursive' }}>
+              Write a Review
             </h2>
             <form onSubmit={handleRateSubmit} className="space-y-6">
-              <div className="flex items-center gap-2 justify-center mb-4">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setUserRating(star)}
-                    className="focus:outline-none"
-                  >
-                    <Star className={`w-8 h-8 ${star <= userRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                  </button>
-                ))}
+              {/* Rating */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  Rating
+                </label>
+                <div className="flex items-center gap-2 justify-center mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setUserRating(star)}
+                      className="focus:outline-none hover:scale-110 transition-transform"
+                    >
+                      <Star className={`w-8 h-8 ${star <= userRating ? 'text-yellow-400 fill-current' : 'text-gray-300 hover:text-yellow-200'}`} />
+                    </button>
+                  ))}
+                </div>
               </div>
-              <button
-                type="submit"
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-300"
-                disabled={rateStatus === 'loading' || userRating === 0}
-              >
-                {rateStatus === 'loading' ? 'Submitting...' : 'Submit Rating'}
-              </button>
+
+              {/* Comment */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  Your Review
+                </label>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  className="w-full p-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                  rows={4}
+                  placeholder="Share your thoughts about this recipe..."
+                  maxLength={1000}
+                  style={{ fontFamily: 'Outfit, sans-serif' }}
+                />
+                <div className="text-sm text-gray-500 mt-1">
+                  {reviewComment.length}/1000 characters
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <button
+                  type="submit"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 font-semibold transition-colors duration-300 flex items-center justify-center"
+                  disabled={rateStatus === 'loading' || userRating === 0 || !reviewComment.trim()}
+                  style={{ fontFamily: 'Outfit, sans-serif' }}
+                >
+                  {rateStatus === 'loading' ? (
+                    <div className="flex items-center gap-2">
+                      <ButtonLoader />
+                      <span>Submitting...</span>
+                    </div>
+                  ) : (
+                    'Submit Review'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 px-4 font-semibold transition-colors"
+                  onClick={() => {
+                    setShowRateModal(false);
+                    setUserRating(0);
+                    setReviewComment('');
+                    setRateStatus('idle');
+                    setRateMessage('');
+                  }}
+                  style={{ fontFamily: 'Outfit, sans-serif' }}
+                >
+                  Cancel
+                </button>
+              </div>
+              
               {rateStatus === 'error' && (
-                <div className="text-red-600 text-center font-semibold">{rateMessage}</div>
+                <div className="text-red-600 text-center font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  {rateMessage}
+                </div>
               )}
               {rateStatus === 'success' && (
-                <div className="text-green-600 text-center font-semibold">{rateMessage}</div>
+                <div className="text-green-600 text-center font-semibold" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  {rateMessage}
+                </div>
               )}
-              <button
-                type="button"
-                className="w-full mt-2 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg font-semibold"
-                onClick={() => setShowRateModal(false)}
-              >
-                Cancel
-              </button>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 }

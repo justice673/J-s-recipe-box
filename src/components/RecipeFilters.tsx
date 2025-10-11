@@ -141,7 +141,7 @@ export default function RecipeFilters({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 placeholder-gray-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 placeholder-gray-500"
                 style={{ fontFamily: 'Outfit, sans-serif' }}
               />
             </div>
@@ -155,7 +155,7 @@ export default function RecipeFilters({
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+              className="w-full p-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             >
               {categories.map((category) => (
@@ -174,7 +174,7 @@ export default function RecipeFilters({
             <select
               value={selectedDifficulty}
               onChange={(e) => setSelectedDifficulty(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+              className="w-full p-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             >
               {difficulties.map((difficulty) => (
@@ -193,7 +193,7 @@ export default function RecipeFilters({
             <select
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+              className="w-full p-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             >
               {timeRanges.map((time) => (
@@ -214,7 +214,7 @@ export default function RecipeFilters({
               value={ingredientFilter}
               onChange={(e) => setIngredientFilter(e.target.value)}
               placeholder="e.g., chicken, tomato..."
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 placeholder-gray-500"
+              className="w-full p-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900 placeholder-gray-500"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             />
           </div>
@@ -227,7 +227,7 @@ export default function RecipeFilters({
             <select
               value={selectedCuisine}
               onChange={(e) => setSelectedCuisine(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+              className="w-full p-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             >
               {cuisines.map((cuisine) => (
@@ -246,7 +246,7 @@ export default function RecipeFilters({
             <select
               value={selectedDiet}
               onChange={(e) => setSelectedDiet(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+              className="w-full p-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             >
               {diets.map((diet) => (
@@ -265,7 +265,7 @@ export default function RecipeFilters({
             <select
               value={calorieRange}
               onChange={(e) => setCalorieRange(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
+              className="w-full p-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
               style={{ fontFamily: 'Outfit, sans-serif' }}
             >
               {calorieRanges.map((calorie) => (
