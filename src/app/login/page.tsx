@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import ButtonLoader from '@/components/ButtonLoader';
 import DebugAuth from '@/components/DebugAuth';
+import { apiUrl } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      const res = await fetch(apiUrl('api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -56,7 +57,7 @@ export default function LoginPage() {
       toast.success('Login successful! Redirecting...');
 
       // Fetch current user profile to reliably get role and other fields
-      const profileRes = await fetch('http://localhost:5000/api/users/me', {
+      const profileRes = await fetch(apiUrl('api/users/me'), {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${data.token}`,

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { apiUrl } from '@/lib/api';
 import { 
   LayoutDashboard, 
   Users, 
@@ -51,7 +52,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         }
 
         // Check if user is admin by calling admin endpoint
-        const response = await fetch('http://localhost:5000/api/admin/dashboard/stats', {
+        const response = await fetch(apiUrl('api/admin/dashboard/stats'), {
           headers: {
             'Authorization': `Bearer ${token}`
           }

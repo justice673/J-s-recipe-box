@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import Loader from '@/components/Loader';
 import ButtonLoader from '@/components/ButtonLoader';
 import AdminPagination from '@/components/AdminPagination';
+import { apiUrl } from '@/lib/api';
 import AdminTable from '@/components/AdminTable';
 
 interface User {
@@ -162,7 +163,7 @@ export default function AdminUsers() {
         ...(roleFilter && { role: roleFilter })
       });
 
-      const response = await fetch(`http://localhost:5000/api/admin/users?${queryParams}`, {
+      const response = await fetch(apiUrl(`api/admin/users?${queryParams}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -204,7 +205,7 @@ export default function AdminUsers() {
     setActionLoading(userId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/status`, {
+      const response = await fetch(apiUrl(`api/admin/users/${userId}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -237,7 +238,7 @@ export default function AdminUsers() {
     setActionLoading(userId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/admin`, {
+      const response = await fetch(apiUrl(`api/admin/users/${userId}/admin`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`

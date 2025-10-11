@@ -8,6 +8,7 @@ import Pagination from '@/components/Pagination';
 import AddRecipeModal from '@/components/AddRecipeModal';
 import Loader from '@/components/Loader';
 import { toast } from 'sonner';
+import { apiUrl } from '@/lib/api';
 
 interface Recipe {
   _id?: string;
@@ -71,14 +72,14 @@ export default function ProfilePage() {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Not authenticated.');
         // Fetch user profile
-        const userRes = await fetch('http://localhost:5000/api/users/me', {
+        const userRes = await fetch(apiUrl('api/users/me'), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!userRes.ok) throw new Error('Failed to fetch user profile');
         const userData = await userRes.json();
         setUser(userData);
         // Fetch published recipes
-        const recipesRes = await fetch(`http://localhost:5000/api/recipes/user/${userData._id}`);
+        const recipesRes = await fetch(apiUrl(`api/recipes/user/${userData._id}`));
         if (!recipesRes.ok) throw new Error('Failed to fetch recipes');
         const recipesData = await recipesRes.json();
         setPublishedRecipes(recipesData);
@@ -100,7 +101,7 @@ export default function ProfilePage() {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const res = await fetch('http://localhost:5000/api/recipes/popular', {
+        const res = await fetch(apiUrl('api/recipes/popular'), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) return;
@@ -143,7 +144,7 @@ export default function ProfilePage() {
       if (typeof window === 'undefined') return;
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Not authenticated.');
-      const res = await fetch('http://localhost:5000/api/recipes', {
+      const res = await fetch(apiUrl('api/recipes'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,11 +157,11 @@ export default function ProfilePage() {
         throw new Error(errData.message || 'Failed to add recipe');
       }
       // Refetch published recipes
-      const userRes = await fetch('http://localhost:5000/api/users/me', {
+      const userRes = await fetch(apiUrl('api/users/me'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const userData = await userRes.json();
-      const recipesRes = await fetch(`http://localhost:5000/api/recipes/user/${userData._id}`);
+      const recipesRes = await fetch(apiUrl(`api/recipes/user/${userData._id}`));
       const recipesData = await recipesRes.json();
       setPublishedRecipes(recipesData);
       setActiveTab('published');
@@ -185,7 +186,7 @@ export default function ProfilePage() {
         toast.error('Please log in to edit recipes');
         return;
       }
-      const res = await fetch(`http://localhost:5000/api/recipes/${editRecipe._id || editRecipe.id}`, {
+      const res = await fetch(apiUrl(`api/recipes/${editRecipe._id || editRecipe.id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -199,11 +200,11 @@ export default function ProfilePage() {
       }
       toast.success('Recipe updated successfully! ✏️');
       // Refetch recipes
-      const userRes = await fetch('http://localhost:5000/api/users/me', {
+      const userRes = await fetch(apiUrl('api/users/me'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const userData = await userRes.json();
-      const recipesRes = await fetch(`http://localhost:5000/api/recipes/user/${userData._id}`);
+      const recipesRes = await fetch(apiUrl(`api/recipes/user/${userData._id}`));
       const recipesData = await recipesRes.json();
       setPublishedRecipes(recipesData);
       setShowEditModal(false);
@@ -224,7 +225,7 @@ export default function ProfilePage() {
         toast.error('Please log in to delete recipes');
         return;
       }
-      const res = await fetch(`http://localhost:5000/api/recipes/${recipeId}`, {
+      const res = await fetch(apiUrl(`api/recipes/${recipeId}`), {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -234,11 +235,11 @@ export default function ProfilePage() {
       }
       toast.success('Recipe deleted successfully! 🗑️');
       // Refetch recipes
-      const userRes = await fetch('http://localhost:5000/api/users/me', {
+      const userRes = await fetch(apiUrl('api/users/me'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const userData = await userRes.json();
-      const recipesRes = await fetch(`http://localhost:5000/api/recipes/user/${userData._id}`);
+      const recipesRes = await fetch(apiUrl(`api/recipes/user/${userData._id}`));
       const recipesData = await recipesRes.json();
       setPublishedRecipes(recipesData);
     } catch (err: unknown) {

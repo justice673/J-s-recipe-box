@@ -28,6 +28,8 @@ import {
 } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import Loader from '@/components/Loader';
+import { apiUrl } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 ChartJS.register(
   CategoryScale,
@@ -111,7 +113,7 @@ export default function AdminDashboard() {
         if (typeof window === 'undefined') return;
         const token = localStorage.getItem('token');
         
-        const response = await fetch('http://localhost:5000/api/admin/dashboard/stats', {
+        const response = await fetch(apiUrl('api/admin/dashboard/stats'), {
           headers: {
             'Authorization': `Bearer ${token}`
           }

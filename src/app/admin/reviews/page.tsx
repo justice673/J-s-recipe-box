@@ -10,6 +10,7 @@ import ButtonLoader from '@/components/ButtonLoader';
 import AdminPagination from '@/components/AdminPagination';
 import Image from 'next/image';
 import Link from 'next/link';
+import { apiUrl } from '@/lib/api';
 
 interface Review {
   _id: string;
@@ -59,7 +60,7 @@ export default function AdminReviews() {
         ...(ratingFilter && { rating: ratingFilter })
       });
 
-      const response = await fetch(`http://localhost:5000/api/admin/reviews?${queryParams}`, {
+      const response = await fetch(apiUrl(`api/admin/reviews?${queryParams}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -88,7 +89,7 @@ export default function AdminReviews() {
     setDeleteLoading(reviewId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/reviews/${reviewId}`, {
+      const response = await fetch(apiUrl(`api/admin/reviews/${reviewId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

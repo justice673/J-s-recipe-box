@@ -10,6 +10,7 @@ import ButtonLoader from '@/components/ButtonLoader';
 import AdminPagination from '@/components/AdminPagination';
 import Image from 'next/image';
 import Link from 'next/link';
+import { apiUrl } from '@/lib/api';
 
 interface Recipe {
   _id: string;
@@ -59,7 +60,7 @@ export default function AdminRecipes() {
         ...(categoryFilter && { category: categoryFilter })
       });
 
-      const response = await fetch(`http://localhost:5000/api/admin/recipes?${queryParams}`, {
+      const response = await fetch(apiUrl(`api/admin/recipes?${queryParams}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -88,7 +89,7 @@ export default function AdminRecipes() {
     setDeleteLoading(recipeId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/admin/recipes/${recipeId}`, {
+            const response = await fetch(apiUrl(`api/admin/recipes/${recipeId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

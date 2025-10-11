@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import ButtonLoader from '@/components/ButtonLoader';
+import { apiUrl } from '@/lib/api';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -51,7 +52,7 @@ export default function SignupPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/auth/signup', {
+      const res = await fetch(apiUrl('api/auth/signup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

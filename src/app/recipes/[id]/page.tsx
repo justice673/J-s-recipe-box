@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import Loader from '@/components/Loader';
 import ButtonLoader from '@/components/ButtonLoader';
+import { apiUrl } from '@/lib/api';
 
 interface Recipe {
   _id: string;
@@ -82,7 +83,7 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
           headers.Authorization = `Bearer ${token}`;
         }
 
-        const response = await fetch(`http://localhost:5000/api/recipes/${resolvedParams.id}`, {
+        const response = await fetch(apiUrl(`api/recipes/${resolvedParams.id}`), {
           headers
         });
 
@@ -95,7 +96,7 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
         setIsLiked(data.liked || false);
 
         // Fetch similar recipes
-        const similarResponse = await fetch(`http://localhost:5000/api/recipes?category=${data.category}&limit=3`, {
+        const similarResponse = await fetch(apiUrl(`api/recipes?category=${data.category}&limit=3`), {
           headers
         });
         
@@ -123,7 +124,7 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
     try {
       if (typeof window === 'undefined') return;
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/recipes/${resolvedParams.id}/like`, {
+      const response = await fetch(apiUrl(`api/recipes/${resolvedParams.id}/like`), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -160,7 +161,7 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
     try {
       if (typeof window === 'undefined') return;
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/reviews/${resolvedParams.id}`, {
+      const response = await fetch(apiUrl(`api/reviews/${resolvedParams.id}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

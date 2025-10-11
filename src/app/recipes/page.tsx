@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import Loader from '@/components/Loader';
 import ButtonLoader from '@/components/ButtonLoader';
 import { toast } from 'sonner';
+import { apiUrl } from '@/lib/api';
 
 interface Recipe {
   _id?: string;
@@ -132,7 +133,7 @@ export default function RecipesPage() {
       }
       
       const wasLiked = userLikes[recipeIdString];
-      const res = await fetch(`http://localhost:5000/api/recipes/${recipeId}/like`, {
+      const res = await fetch(apiUrl(`api/recipes/${recipeId}/like`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -150,7 +151,7 @@ export default function RecipesPage() {
       toast.success(wasLiked ? 'Removed from favorites ❤️' : 'Added to favorites 💚');
       
       // Fetch updated user profile for accurate favorite count
-      const userRes = await fetch('http://localhost:5000/api/users/me', {
+      const userRes = await fetch(apiUrl('api/users/me'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (userRes.ok) {

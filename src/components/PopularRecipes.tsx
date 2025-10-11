@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Clock, ArrowRight } from 'lucide-react';
+import { apiUrl } from '@/lib/api';
 
 interface Recipe {
   _id: string;
