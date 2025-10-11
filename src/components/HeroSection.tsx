@@ -43,9 +43,11 @@ export default function HeroSection() {
             <span className="drop-shadow-2xl" style={{ fontFamily: 'Outfit, sans-serif' }}>Welcome to</span>
             <br />
             <div className="flex items-center gap-4 mt-2">
-              <img 
+              <Image 
                 src="/logo.png" 
                 alt="J's Recipe Box Logo" 
+                width={96}
+                height={96}
                 className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 drop-shadow-lg"
               />
               <span className="bg-gradient-to-r from-green-300 via-green-400 to-green-500 bg-clip-text text-transparent drop-shadow-none" style={{ fontFamily: 'Caveat, cursive' }}>

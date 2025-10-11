@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Heart, Search, User, LogOut, ChevronDown, Menu, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -65,9 +66,11 @@ export default function Header() {
         {/* Left: Site Name */}
         <Link href="/" className="flex-shrink-0">
           <div className="flex items-center gap-2">
-            <img 
+            <Image 
               src="/logo.png" 
               alt="J's Recipe Box Logo" 
+              width={40}
+              height={40}
               className="w-8 h-8 md:w-10 md:h-10"
             />
             <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-green-300 via-green-400 to-green-500 bg-clip-text text-transparent cursor-pointer" style={{ fontFamily: 'Caveat, cursive' }}>

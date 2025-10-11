@@ -65,9 +65,11 @@ export default function ForgotPasswordPage() {
                   Reset Your Password
                 </h2>
                 <div className="flex items-center justify-center gap-3 mb-2">
-                  <img 
+                  <Image 
                     src="/logo.png" 
                     alt="J's Recipe Box Logo" 
+                    width={64}
+                    height={64}
                     className="w-12 h-12 md:w-16 md:h-16"
                   />
                   <h3 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-300 via-green-400 to-green-500 bg-clip-text text-transparent" style={{ fontFamily: 'Caveat, cursive' }}>
