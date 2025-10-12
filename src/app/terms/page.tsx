@@ -25,7 +25,6 @@ export default function TermsPage() {
         
         <div className="relative z-10 flex items-center justify-center h-full text-center px-4">
           <div>
-            <FileText className="w-12 h-12 text-white mx-auto mb-4" />
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-2" style={{ fontFamily: 'Caveat, cursive' }}>
               Terms of Service
             </h1>
