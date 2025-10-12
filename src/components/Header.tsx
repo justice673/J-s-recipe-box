@@ -3,12 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Heart, Search, User, LogOut, ChevronDown, Menu, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const { isLoggedIn, user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [showDropdown, setShowDropdown] = React.useState(false);
@@ -82,14 +83,23 @@ export default function Header() {
         {/* Center: Navigation Links - Desktop */}
         <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2">
           <div className="flex gap-8 items-center">
-            <Link href="/recipes" className="text-white hover:text-green-300 transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
+            <Link href="/recipes" className="relative group text-white hover:text-green-300 transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
               <span className="text-lg font-semibold">Recipes</span>
+              <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-green-400 transform transition-transform origin-left ${
+                pathname === '/recipes' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+              }`}></div>
             </Link>
-            <Link href="/about" className="text-white hover:text-green-300 transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
+            <Link href="/about" className="relative group text-white hover:text-green-300 transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
               <span className="text-lg font-semibold">About</span>
+              <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-green-400 transform transition-transform origin-left ${
+                pathname === '/about' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+              }`}></div>
             </Link>
-            <Link href="/contact" className="text-white hover:text-green-300 transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
+            <Link href="/contact" className="relative group text-white hover:text-green-300 transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
               <span className="text-lg font-semibold">Contact</span>
+              <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-green-400 transform transition-transform origin-left ${
+                pathname === '/contact' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+              }`}></div>
             </Link>
           </div>
         </div>
@@ -260,33 +270,48 @@ export default function Header() {
             <Link 
               href="/recipes" 
               onClick={closeMobileMenu}
-              className="flex items-center gap-3 text-gray-800 hover:text-green-600 transition-colors text-lg font-semibold"
+              className={`flex items-center gap-3 hover:text-green-600 transition-colors text-lg font-semibold relative ${
+                pathname === '/recipes' ? 'text-green-600' : 'text-gray-800'
+              }`}
               style={{ fontFamily: 'Caveat, cursive' }}
             >
               <Search className="w-5 h-5" />
               <span>Recipes</span>
+              {pathname === '/recipes' && (
+                <div className="absolute left-0 top-0 w-1 h-full bg-green-600 rounded-r"></div>
+              )}
             </Link>
             <Link 
               href="/about" 
               onClick={closeMobileMenu}
-              className="flex items-center gap-3 text-gray-800 hover:text-green-600 transition-colors text-lg font-semibold"
+              className={`flex items-center gap-3 hover:text-green-600 transition-colors text-lg font-semibold relative ${
+                pathname === '/about' ? 'text-green-600' : 'text-gray-800'
+              }`}
               style={{ fontFamily: 'Caveat, cursive' }}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>About</span>
+              {pathname === '/about' && (
+                <div className="absolute left-0 top-0 w-1 h-full bg-green-600 rounded-r"></div>
+              )}
             </Link>
             <Link 
               href="/contact" 
               onClick={closeMobileMenu}
-              className="flex items-center gap-3 text-gray-800 hover:text-green-600 transition-colors text-lg font-semibold"
+              className={`flex items-center gap-3 hover:text-green-600 transition-colors text-lg font-semibold relative ${
+                pathname === '/contact' ? 'text-green-600' : 'text-gray-800'
+              }`}
               style={{ fontFamily: 'Caveat, cursive' }}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               <span>Contact</span>
+              {pathname === '/contact' && (
+                <div className="absolute left-0 top-0 w-1 h-full bg-green-600 rounded-r"></div>
+              )}
             </Link>
           </div>
           
