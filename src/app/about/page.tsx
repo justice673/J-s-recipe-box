@@ -58,7 +58,7 @@ export default function AboutPage() {
           </div>
           <div className="relative">
             <Image
-              src="https://images.unsplash.com/photo-1556909114-54dc0d9b0a9b?w=600&h=400&fit=crop"
+              src="/about.webp"
               alt="Our cooking story"
               width={600}
               height={400}
@@ -175,12 +175,12 @@ export default function AboutPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup">
-              <button className="bg-white text-green-600 hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
+              <button className="bg-white text-green-600 hover:bg-gray-100 px-8 py-3  font-semibold transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
                 Get Started
               </button>
             </Link>
             <Link href="/recipes">
-              <button className="border-2 border-white text-white hover:bg-white hover:text-green-600 px-8 py-3 rounded-lg font-semibold transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
+              <button className="border-2 border-white text-white hover:bg-white hover:text-green-600 px-8 py-3  font-semibold transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
                 Browse Recipes
               </button>
             </Link>
