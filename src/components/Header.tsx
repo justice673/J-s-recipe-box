@@ -79,11 +79,19 @@ export default function Header() {
           </div>
         </Link>
         
-        {/* Center: View Recipes - Desktop */}
+        {/* Center: Navigation Links - Desktop */}
         <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2">
-          <Link href="/recipes" className="text-white hover:text-green-300 transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
-            <span className="text-xl font-bold">View Recipes</span>
-          </Link>
+          <div className="flex gap-8 items-center">
+            <Link href="/recipes" className="text-white hover:text-green-300 transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
+              <span className="text-lg font-semibold">Recipes</span>
+            </Link>
+            <Link href="/about" className="text-white hover:text-green-300 transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
+              <span className="text-lg font-semibold">About</span>
+            </Link>
+            <Link href="/contact" className="text-white hover:text-green-300 transition-colors" style={{ fontFamily: 'Caveat, cursive' }}>
+              <span className="text-lg font-semibold">Contact</span>
+            </Link>
+          </div>
         </div>
         
         {/* Right: Desktop Navigation */}
@@ -256,7 +264,29 @@ export default function Header() {
               style={{ fontFamily: 'Caveat, cursive' }}
             >
               <Search className="w-5 h-5" />
-              <span>View Recipes</span>
+              <span>Recipes</span>
+            </Link>
+            <Link 
+              href="/about" 
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 text-gray-800 hover:text-green-600 transition-colors text-lg font-semibold"
+              style={{ fontFamily: 'Caveat, cursive' }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>About</span>
+            </Link>
+            <Link 
+              href="/contact" 
+              onClick={closeMobileMenu}
+              className="flex items-center gap-3 text-gray-800 hover:text-green-600 transition-colors text-lg font-semibold"
+              style={{ fontFamily: 'Caveat, cursive' }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>Contact</span>
             </Link>
           </div>
           

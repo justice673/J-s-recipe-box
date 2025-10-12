@@ -11,15 +11,15 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="relative h-96 bg-gradient-to-br from-green-600 via-green-700 to-green-800 overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
+      <div className="relative h-96 overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&h=400&fit=crop"
           alt="Cooking together"
           fill
-          className="object-cover mix-blend-overlay"
+          className="object-cover"
           priority
         />
+        <div className="absolute inset-0 bg-black/40"></div>
         
         <Header />
         
