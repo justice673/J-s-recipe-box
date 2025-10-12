@@ -58,7 +58,7 @@ export default function AboutPage() {
           </div>
           <div className="relative">
             <Image
-              src="/about.webp"
+              src="https://preview.colorlib.com/theme/delicious/img/bg-img/sr4.jpg.webp"
               alt="Our cooking story"
               width={600}
               height={400}
