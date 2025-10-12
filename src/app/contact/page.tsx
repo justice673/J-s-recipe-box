@@ -66,7 +66,6 @@ export default function ContactPage() {
         
         <div className="relative z-10 flex items-center justify-center h-full text-center px-4">
           <div>
-            <MessageSquare className="w-16 h-16 text-white mx-auto mb-4" />
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-4" style={{ fontFamily: 'Caveat, cursive' }}>
               Get in Touch
             </h1>
