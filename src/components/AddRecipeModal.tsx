@@ -278,8 +278,8 @@ export default function AddRecipeModal({ isOpen, onClose, onSubmit, initialData 
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 placeholder="Enter recipe title..."
-                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
-                style={{ fontFamily: 'Outfit, sans-serif' }}
+                className="w-full p-3 border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-black"
+                style={{ fontFamily: 'Outfit, sans-serif', color: '#000000' }}
                 required
               />
             </div>

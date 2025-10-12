@@ -39,6 +39,17 @@ interface Recipe {
   liked?: boolean;
 }
 
+interface Review {
+  _id: string;
+  rating: number;
+  comment: string;
+  user: {
+    fullName: string;
+    email: string;
+  };
+  createdAt: string;
+}
+
 interface RecipeDetailsProps {
   params: Promise<{
     id: string;
@@ -50,6 +61,8 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
   const resolvedParams = use(params);
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [similarRecipes, setSimilarRecipes] = useState<Recipe[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
@@ -64,6 +77,22 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch reviews
+  const fetchReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      const response = await fetch(apiUrl(`api/reviews/${resolvedParams.id}`));
+      if (response.ok) {
+        const data = await response.json();
+        setReviews(Array.isArray(data) ? data : data.reviews || []);
+      }
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
 
   // Fetch recipe data
   useEffect(() => {
@@ -104,6 +133,9 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
           const similarData = await similarResponse.json();
           setSimilarRecipes(similarData.recipes.filter((r: Recipe) => r._id !== resolvedParams.id).slice(0, 3));
         }
+
+        // Fetch reviews
+        await fetchReviews();
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to load recipe');
       } finally {
@@ -185,8 +217,8 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
       setUserRating(0);
       setReviewComment('');
       
-      // Refresh recipe data
-      window.location.reload();
+      // Refresh reviews
+      await fetchReviews();
     } catch (err: unknown) {
       setRateStatus('error');
       setRateMessage(err instanceof Error ? err.message : 'Failed to submit review');
@@ -513,28 +545,52 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
             </p>
           )}
 
-          {/* Reviews will be loaded here - placeholder for now */}
-          <div className="space-y-4">
-            <div className="border-l-4 border-green-500 pl-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-                  <span className="font-semibold text-gray-800" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                    Sample Review
+          {/* Reviews List */}
+          {reviewsLoading ? (
+            <div className="text-center py-6 text-gray-500" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              Loading reviews...
+            </div>
+          ) : reviews.length > 0 ? (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <div key={review._id} className="border-l-4 border-green-500 pl-4 py-3 bg-gray-50 rounded-r-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-semibold text-sm">
+                        {review.user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                      </div>
+                      <span className="font-semibold text-gray-800" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                        {review.user?.fullName || 'Anonymous User'}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star 
+                          key={star} 
+                          className={`w-4 h-4 ${star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-gray-700 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                    {review.comment}
+                  </p>
+                  <span className="text-sm text-gray-500">
+                    {new Date(review.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
                   </span>
                 </div>
-                <div className="flex items-center">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="w-4 h-4 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-              </div>
-              <p className="text-gray-700 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                This is a sample review. In the next update, this will show real user reviews.
-              </p>
-              <span className="text-sm text-gray-500">2 days ago</span>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <p className="mb-2">No reviews yet.</p>
+              <p className="text-sm">Be the first to share your thoughts about this recipe!</p>
+            </div>
+          )}
         </div>
 
         {/* Similar Recipes */}
@@ -621,7 +677,7 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
                 <textarea
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
-                  className="w-full p-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                  className="w-full p-3 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none text-gray-900"
                   rows={4}
                   placeholder="Share your thoughts about this recipe..."
                   maxLength={1000}
