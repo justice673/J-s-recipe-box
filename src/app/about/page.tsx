@@ -62,7 +62,9 @@ export default function AboutPage() {
               alt="Our cooking story"
               width={600}
               height={400}
-              className="rounded-lg shadow-lg"
+              className="rounded-lg shadow-lg object-cover"
+              quality={100}
+              priority
             />
           </div>
         </div>
