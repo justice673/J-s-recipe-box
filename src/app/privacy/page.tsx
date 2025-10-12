@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Shield, Lock, Eye, UserCheck } from 'lucide-react';
 import Header from '@/components/Header';
@@ -10,7 +11,16 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="relative h-64 bg-gradient-to-br from-green-600 via-green-700 to-green-800">
+      <div className="relative h-64 overflow-hidden">
+        <Image
+          src="https://preview.colorlib.com/theme/meal/images/img_2.jpg"
+          alt="Privacy policy"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/50"></div>
+        
         <Header />
         
         <div className="relative z-10 flex items-center justify-center h-full text-center px-4">
