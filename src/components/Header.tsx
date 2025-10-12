@@ -127,6 +127,17 @@ export default function Header() {
                       <User className="w-4 h-4" />
                       <span>Profile</span>
                     </Link>
+                    <Link
+                      href="/submit-recipe"
+                      className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors border-t"
+                      style={{ fontFamily: 'Outfit, sans-serif' }}
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span>Submit Recipe</span>
+                    </Link>
                     {user?.role === 'admin' && (
                       <Link
                         href="/admin"
@@ -263,6 +274,19 @@ export default function Header() {
                     {userInitials || <User className="w-4 h-4" />}
                   </div>
                   <span>Profile</span>
+                </Link>
+                <Link
+                  href="/submit-recipe"
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-3 text-gray-800 hover:text-green-600 transition-colors text-lg"
+                  style={{ fontFamily: 'Caveat, cursive' }}
+                >
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                  <span>Submit Recipe</span>
                 </Link>
                 {user?.role === 'admin' && (
                   <Link

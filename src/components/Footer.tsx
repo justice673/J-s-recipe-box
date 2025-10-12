@@ -1,13 +1,14 @@
 import React from 'react';
-import { Heart, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube, Copyright } from 'lucide-react';
+import Link from 'next/link';
+import { Heart, Mail, Phone, MapPin, Copyright } from 'lucide-react';
 
 export default function Footer() {
   return (
     <footer className="bg-gray-900 text-white py-16 px-8">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Brand Column */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <img 
                 src="/logo.png" 
@@ -21,20 +22,6 @@ export default function Footer() {
             <p className="text-gray-300 mb-6 max-w-md" style={{ fontFamily: 'Outfit, sans-serif' }}>
               Where every recipe tells a story. Join our community of food lovers and discover incredible recipes from around the world.
             </p>
-            <div className="flex space-x-4">
-              <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors cursor-pointer">
-                <Facebook className="w-5 h-5" />
-              </div>
-              <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors cursor-pointer">
-                <Twitter className="w-5 h-5" />
-              </div>
-              <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors cursor-pointer">
-                <Instagram className="w-5 h-5" />
-              </div>
-              <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors cursor-pointer">
-                <Youtube className="w-5 h-5" />
-              </div>
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -43,11 +30,10 @@ export default function Footer() {
               Quick Links
             </h4>
             <ul className="space-y-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              <li><a href="#" className="text-gray-300 hover:text-green-400 transition-colors">Browse Recipes</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-green-400 transition-colors">Submit Recipe</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-green-400 transition-colors">Recipe Categories</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-green-400 transition-colors">Cooking Tips</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-green-400 transition-colors">About Us</a></li>
+              <li><Link href="/recipes" className="text-gray-300 hover:text-green-400 transition-colors">Browse Recipes</Link></li>
+              <li><Link href="/submit-recipe" className="text-gray-300 hover:text-green-400 transition-colors">Submit Recipe</Link></li>
+              <li><Link href="/about" className="text-gray-300 hover:text-green-400 transition-colors">About Us</Link></li>
+              <li><Link href="/contact" className="text-gray-300 hover:text-green-400 transition-colors">Contact Us</Link></li>
             </ul>
           </div>
 
@@ -77,10 +63,20 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-12 pt-8 text-center">
-          <p className="text-gray-400" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            <Copyright className="w-4 h-4 inline mr-1" /> {new Date().getFullYear()} J&apos;s Recipe Box. All rights reserved. Made with <Heart className="w-4 h-4 text-green-400 inline fill-current" /> for food lovers everywhere.
-          </p>
+        <div className="border-t border-gray-800 mt-12 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-gray-400" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <Copyright className="w-4 h-4 inline mr-1" /> {new Date().getFullYear()} J&apos;s Recipe Box. All rights reserved. Made with <Heart className="w-4 h-4 text-green-400 inline fill-current" /> for food lovers everywhere.
+            </p>
+            <div className="flex gap-6 text-sm" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              <Link href="/terms" className="text-gray-400 hover:text-green-400 transition-colors">
+                Terms of Service
+              </Link>
+              <Link href="/privacy" className="text-gray-400 hover:text-green-400 transition-colors">
+                Privacy Policy
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
