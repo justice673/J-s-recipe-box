@@ -23,12 +23,35 @@ export default function LoginPage() {
   const [error, setError] = React.useState('');
   const [success, setSuccess] = React.useState('');
 
+  // Load remembered credentials on component mount
+  React.useEffect(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    const rememberedPassword = localStorage.getItem('rememberedPassword');
+    const wasRemembered = localStorage.getItem('rememberMe') === 'true';
+
+    if (wasRemembered && rememberedEmail) {
+      setForm(prev => ({
+        ...prev,
+        email: rememberedEmail,
+        password: rememberedPassword || '',
+        rememberMe: true
+      }));
+    }
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value, type, checked } = e.target;
     setForm(prev => ({
       ...prev,
       [id]: type === 'checkbox' ? checked : value
     }));
+
+    // If unchecking remember me, clear stored credentials immediately
+    if (id === 'rememberMe' && !checked) {
+      localStorage.removeItem('rememberedEmail');
+      localStorage.removeItem('rememberedPassword');
+      localStorage.removeItem('rememberMe');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,6 +77,18 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.message || 'Login failed');
       setSuccess('Login successful! Redirecting...');
       toast.success('Login successful! Redirecting...');
+
+      // Handle remember me functionality
+      if (form.rememberMe) {
+        localStorage.setItem('rememberedEmail', form.email);
+        localStorage.setItem('rememberedPassword', form.password);
+        localStorage.setItem('rememberMe', 'true');
+      } else {
+        // Clear remembered credentials if not checking remember me
+        localStorage.removeItem('rememberedEmail');
+        localStorage.removeItem('rememberedPassword');
+        localStorage.removeItem('rememberMe');
+      }
 
       // Fetch current user profile to reliably get role and other fields
       const profileRes = await fetch(apiUrl('api/users/me'), {
@@ -208,14 +243,14 @@ export default function LoginPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <input
-                      id="remember-me"
-                      name="remember-me"
+                      id="rememberMe"
+                      name="rememberMe"
                       type="checkbox"
                       checked={form.rememberMe}
                       onChange={handleChange}
                       className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                     />
-                    <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                    <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700" style={{ fontFamily: 'Outfit, sans-serif' }}>
                       Remember me
                     </label>
                   </div>
