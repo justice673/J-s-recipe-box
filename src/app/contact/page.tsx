@@ -67,7 +67,7 @@ export default function ContactPage() {
       <div className="relative h-96 bg-gradient-to-br from-green-600 via-green-700 to-green-800 overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
         <Image
-          src="https://images.unsplash.com/photo-1516985080664-ed2fc6a32937?w=1200&h=400&fit=crop"
+          src="/contact.webp"
           alt="Contact us"
           fill
           className="object-cover mix-blend-overlay"
