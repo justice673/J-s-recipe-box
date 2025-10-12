@@ -7,6 +7,7 @@ import { Mail, Phone, MapPin, Send, MessageSquare, CheckCircle } from 'lucide-re
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
+import { apiUrl } from '@/lib/api';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -35,14 +36,25 @@ export default function ContactPage() {
 
     setIsSubmitting(true);
 
-    // Simulate form submission (you can integrate with your backend API here)
     try {
-      // For now, just simulate a successful submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success('Message sent successfully! We\'ll get back to you soon.');
-      setFormData({ name: '', email: '', subject: '', message: '' });
-    } catch {
+      const response = await fetch(apiUrl('api/contact'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(data.message);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
       toast.error('Failed to send message. Please try again.');
     } finally {
       setIsSubmitting(false);
