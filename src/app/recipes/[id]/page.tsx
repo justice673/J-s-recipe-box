@@ -48,8 +48,10 @@ interface Review {
   rating: number;
   comment: string;
   user: {
+    _id?: string;
     fullName: string;
     email: string;
+    avatar?: string;
   };
   createdAt: string;
 }
@@ -79,6 +81,7 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
   const [mounted, setMounted] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [thumbnailErrors, setThumbnailErrors] = useState<Set<number>>(new Set());
+  const [avatarErrors, setAvatarErrors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setMounted(true);
@@ -89,12 +92,23 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
     try {
       setReviewsLoading(true);
       const response = await fetch(apiUrl(`api/reviews/${resolvedParams.id}`));
+      console.log('Reviews API response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        setReviews(Array.isArray(data) ? data : data.reviews || []);
+        console.log('Reviews API data:', data);
+        console.log('Is array:', Array.isArray(data));
+        console.log('Reviews count:', Array.isArray(data) ? data.length : (data.reviews?.length || 0));
+        const reviewsArray = Array.isArray(data) ? data : (data.reviews || []);
+        console.log('Setting reviews array with length:', reviewsArray.length);
+        setReviews(reviewsArray);
+      } else {
+        const errorText = await response.text();
+        console.error('Reviews API failed, status:', response.status, 'response:', errorText);
+        setReviews([]); // Set empty array on error
       }
     } catch (err) {
       console.error('Error fetching reviews:', err);
+      setReviews([]); // Set empty array on error
     } finally {
       setReviewsLoading(false);
     }
@@ -626,36 +640,69 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
             </div>
           ) : reviews.length > 0 ? (
             <div className="space-y-4">
+              <p className="text-sm text-gray-600 mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+              </p>
               {reviews.map((review) => (
-                <div key={review._id} className="border-l-4 border-green-500 pl-4 py-3 bg-gray-50 rounded-r-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-semibold text-sm">
-                        {review.user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                      </div>
-                      <span className="font-semibold text-gray-800" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                        {review.user?.fullName || 'Anonymous User'}
-                      </span>
+                <div key={review._id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-4 mb-4">
+                    {/* User Avatar */}
+                    <div className="flex-shrink-0">
+                      {review.user?.avatar && !avatarErrors.has(review._id) ? (
+                        <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-green-500">
+                          <Image
+                            src={review.user.avatar}
+                            alt={review.user?.fullName || 'User'}
+                            fill
+                            className="object-cover"
+                            onError={() => {
+                              setAvatarErrors(prev => new Set(prev).add(review._id));
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-full flex items-center justify-center font-semibold text-lg shadow-md">
+                          {review.user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star 
-                          key={star} 
-                          className={`w-4 h-4 ${star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                        />
-                      ))}
+
+                    {/* User Info and Rating */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-bold text-gray-800 text-lg mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                            {review.user?.fullName || 'Anonymous User'}
+                          </h4>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star 
+                                  key={star} 
+                                  className={`w-5 h-5 ${star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                                />
+                              ))}
+                            </div>
+                            <span className="text-sm text-gray-500 font-medium">
+                              {review.rating}.0
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-sm text-gray-500 whitespace-nowrap ml-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                          {new Date(review.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                      
+                      {/* Review Comment */}
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                        {review.comment}
+                      </p>
                     </div>
                   </div>
-                  <p className="text-gray-700 mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                    {review.comment}
-                  </p>
-                  <span className="text-sm text-gray-500">
-                    {new Date(review.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </span>
                 </div>
               ))}
             </div>
