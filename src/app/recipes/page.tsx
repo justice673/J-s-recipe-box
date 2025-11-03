@@ -50,6 +50,7 @@ export default function RecipesPage() {
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState('');
   const [likingRecipes, setLikingRecipes] = React.useState<{ [key: string]: boolean }>({});
+  const [imageErrors, setImageErrors] = React.useState<Set<string>>(new Set());
   const recipesPerPage = 6;
 
   React.useEffect(() => { setFavoriteCount(user?.totalFavorites || 0); }, [user]);
@@ -335,17 +336,27 @@ export default function RecipesPage() {
                 const rid = (recipe._id || recipe.id)!; // guaranteed by normalization
                 return (
                   <div key={rid} className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-                    <div className="relative h-48 sm:h-52 md:h-56 overflow-hidden">
-                      <Image
-                        src={recipe.image || 'https://via.placeholder.com/500x300/e5e7eb/6b7280?text=Recipe+Image'}
-                        alt={recipe.title}
-                        fill
-                        className="object-cover transition-transform duration-300 hover:scale-110"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = 'https://via.placeholder.com/500x300/e5e7eb/6b7280?text=Recipe+Image';
-                        }}
-                      />
+                    <div className="relative h-48 sm:h-52 md:h-56 overflow-hidden bg-gray-100">
+                      {!recipe.image || imageErrors.has(rid) ? (
+                        <div className="flex flex-col items-center justify-center h-full bg-gray-100">
+                          <svg className="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <p className="text-gray-500 text-xs text-center px-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                            Image unavailable
+                          </p>
+                        </div>
+                      ) : (
+                        <Image
+                          src={recipe.image}
+                          alt={recipe.title}
+                          fill
+                          className="object-cover transition-transform duration-300 hover:scale-110"
+                          onError={() => {
+                            setImageErrors(prev => new Set(prev).add(rid));
+                          }}
+                        />
+                      )}
                       <button
                         className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors flex items-center justify-center"
                         onClick={() => handleLike(rid)}

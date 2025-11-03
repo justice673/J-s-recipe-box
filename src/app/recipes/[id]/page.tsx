@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Clock, Users, ChefHat, Heart, ArrowLeft, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Users, ChefHat, Heart, ArrowLeft, Star, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import Loader from '@/components/Loader';
@@ -14,6 +14,7 @@ interface Recipe {
   _id: string;
   title: string;
   description: string;
+  image?: string; // Primary image field
   images: string[];
   time: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -73,6 +74,8 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
   const [reviewComment, setReviewComment] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [thumbnailErrors, setThumbnailErrors] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setMounted(true);
@@ -123,6 +126,9 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
         const data = await response.json();
         setRecipe(data);
         setIsLiked(data.liked || false);
+        // Reset image errors when recipe changes
+        setImageError(false);
+        setThumbnailErrors(new Set());
 
         // Fetch similar recipes
         const similarResponse = await fetch(apiUrl(`api/recipes?category=${data.category}&limit=3`), {
@@ -300,29 +306,51 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
           {/* Recipe Image Gallery */}
           <div className="space-y-4">
             {/* Main Image */}
-            <div className="relative h-96 rounded-lg overflow-hidden shadow-lg">
-              <Image
-                src={recipe.images && recipe.images.length > 0 ? recipe.images[currentImageIndex] : 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop'}
-                alt={recipe.title}
-                fill
-                className="object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop';
-                }}
-              />
+            <div className="relative h-96 rounded-lg overflow-hidden shadow-lg bg-gray-100">
+              {(() => {
+                const imageUrl = recipe.images && recipe.images.length > 0 
+                  ? recipe.images[currentImageIndex] 
+                  : recipe.image;
+                
+                if (!imageUrl || imageError) {
+                  // No image available - show message
+                  return (
+                    <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-gray-100 to-gray-200">
+                      <ImageOff className="w-20 h-20 text-gray-400 mb-4" />
+                      <p className="text-gray-600 font-semibold text-lg" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                        Image Not Available
+                      </p>
+                      <p className="text-gray-500 text-sm mt-2 text-center px-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                        This recipe image could not be loaded
+                      </p>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <Image
+                    src={imageUrl}
+                    alt={recipe.title}
+                    fill
+                    className="object-cover"
+                    onError={() => {
+                      setImageError(true);
+                    }}
+                  />
+                );
+              })()}
               
               {/* Like Button */}
               <button 
                 onClick={handleLike}
-                className="absolute top-4 right-4 p-3 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-lg"
+                className="absolute top-4 right-4 p-3 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-lg z-10"
                 title={isLoggedIn ? (isLiked ? 'Remove from favorites' : 'Add to favorites') : 'Login required'}
               >
                 <Heart className={`w-6 h-6 ${isLiked ? 'text-green-500 fill-current' : 'text-gray-600'}`} />
               </button>
               
               {/* Category Badge */}
-              <div className="absolute bottom-4 left-4">
+              <div className="absolute bottom-4 left-4 z-10">
                 <span className="px-3 py-1 bg-green-600 text-white text-sm font-semibold rounded-full capitalize font-outfit">
                   {recipe.category}
                 </span>
@@ -332,7 +360,7 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
               {isLoggedIn && (
                 <button
                   onClick={() => setShowRateModal(true)}
-                  className="absolute top-4 left-4 p-3 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-lg"
+                  className="absolute top-4 left-4 p-3 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors shadow-lg z-10"
                   title="Rate this recipe"
                 >
                   <Star className="w-6 h-6 text-yellow-500" />
@@ -353,16 +381,21 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
                         : 'hover:ring-2 hover:ring-green-300 hover:ring-offset-1'
                     }`}
                   >
-                    <Image
-                      src={image}
-                      alt={`${recipe.title} - Image ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop';
-                      }}
-                    />
+                    {thumbnailErrors.has(index) ? (
+                      <div className="flex items-center justify-center h-full bg-gray-200">
+                        <ImageOff className="w-6 h-6 text-gray-400" />
+                      </div>
+                    ) : (
+                      <Image
+                        src={image}
+                        alt={`${recipe.title} - Image ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        onError={() => {
+                          setThumbnailErrors(prev => new Set(prev).add(index));
+                        }}
+                      />
+                    )}
                     {/* Active overlay */}
                     {index === currentImageIndex && (
                       <div className="absolute inset-0 bg-green-500/20" />
@@ -603,17 +636,48 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
               {similarRecipes.map((similar) => (
                 <Link key={similar._id} href={`/recipes/${similar._id}`}>
                   <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden cursor-pointer">
-                    <div className="relative h-48 overflow-hidden">
-                      <Image
-                        src={similar.images && similar.images.length > 0 ? similar.images[0] : 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop'}
-                        alt={similar.title}
-                        fill
-                        className="object-cover transition-transform duration-300 hover:scale-110"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = 'https://images.unsplash.com/photo-1546554137-f86b9593a222?w=400&h=300&fit=crop';
-                        }}
-                      />
+                    <div className="relative h-48 overflow-hidden bg-gray-100">
+                      {(() => {
+                        const imageUrl = similar.images && similar.images.length > 0 
+                          ? similar.images[0] 
+                          : similar.image;
+                        
+                        if (!imageUrl) {
+                          return (
+                            <div className="flex flex-col items-center justify-center h-full bg-gray-100">
+                              <ImageOff className="w-12 h-12 text-gray-400 mb-2" />
+                              <p className="text-gray-500 text-xs text-center px-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                                Image unavailable
+                              </p>
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <Image
+                            src={imageUrl}
+                            alt={similar.title}
+                            fill
+                            className="object-cover transition-transform duration-300 hover:scale-110"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent && !parent.querySelector('.similar-error')) {
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'similar-error absolute inset-0 bg-gray-100 flex flex-col items-center justify-center';
+                                errorDiv.innerHTML = `
+                                  <svg class="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  <p class="text-gray-500 text-xs text-center px-2" style="font-family: 'Outfit', sans-serif;">Image unavailable</p>
+                                `;
+                                parent.appendChild(errorDiv);
+                              }
+                            }}
+                          />
+                        );
+                      })()}
                     </div>
                     <div className="p-4">
                       <h4 className="text-lg font-bold text-gray-800 mb-2 font-caveat">

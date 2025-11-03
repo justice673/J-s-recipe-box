@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Clock, ArrowRight } from 'lucide-react';
+import { Clock, ArrowRight, ImageOff } from 'lucide-react';
 
 interface Recipe {
   _id: string;
@@ -21,6 +21,7 @@ interface Recipe {
 export default function PopularRecipes() {
   const [recipes, setRecipes] = React.useState<Recipe[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [imageErrors, setImageErrors] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     const fetchPopularRecipes = async () => {
@@ -79,17 +80,25 @@ export default function PopularRecipes() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recipes.map((recipe) => (
             <div key={recipe._id} className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-              <div className="relative h-64 overflow-hidden">
-                <Image
-                  src={recipe.image || 'https://via.placeholder.com/500x300/e5e7eb/6b7280?text=Recipe+Image'}
-                  alt={recipe.title}
-                  fill
-                  className="object-cover transition-transform duration-300 hover:scale-110"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = 'https://via.placeholder.com/500x300/e5e7eb/6b7280?text=Recipe+Image';
-                  }}
-                />
+              <div className="relative h-64 overflow-hidden bg-gray-100">
+                {!recipe.image || imageErrors.has(recipe._id) ? (
+                  <div className="flex flex-col items-center justify-center h-full bg-gray-100">
+                    <ImageOff className="w-12 h-12 text-gray-400 mb-2" />
+                    <p className="text-gray-500 text-sm text-center px-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                      Image unavailable
+                    </p>
+                  </div>
+                ) : (
+                  <Image
+                    src={recipe.image}
+                    alt={recipe.title}
+                    fill
+                    className="object-cover transition-transform duration-300 hover:scale-110"
+                    onError={() => {
+                      setImageErrors(prev => new Set(prev).add(recipe._id));
+                    }}
+                  />
+                )}
               </div>
               <div className="p-6">
                 <h3 className="text-2xl font-bold mb-2 text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>
