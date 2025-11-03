@@ -55,23 +55,38 @@ export default function RecipesPage() {
 
   React.useEffect(() => { setFavoriteCount(user?.totalFavorites || 0); }, [user]);
 
-  const normalizeRecipe = (r: any): Recipe => ({
-    _id: r._id,
-    id: r._id || r.id,
-    title: r.title || 'Untitled',
-    description: r.description || 'No description provided.',
-    image: typeof r.image === 'string' && r.image.startsWith('http') ? r.image : (r.image?.url || ''),
-    prepTime: Number(r.prepTime || r.time || 0),
-    difficulty: r.difficulty || 'easy',
-    category: r.category || 'other',
-    cuisine: r.cuisine || 'modern',
-    diet: r.diet || 'none',
-    serves: Number(r.serves || r.yield || 1),
-    rating: r.averageRating || (typeof r.rating === 'number' ? r.rating : (Array.isArray(r.ratings) && r.ratings.length ? r.ratings.reduce((a:number,b:any)=>a+(b.rating||b),0)/r.ratings.length : 0)),
-    calories: Number(r.calories || 0),
-    liked: !!r.liked,
-    ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
-  });
+  const normalizeRecipe = (r: any): Recipe => {
+    // Helper to normalize image URL - accepts http/https URLs and relative paths starting with /
+    const normalizeImageUrl = (img: any): string => {
+      if (!img) return '';
+      if (typeof img === 'string') {
+        if (img.startsWith('http') || img.startsWith('/')) {
+          return img;
+        }
+      }
+      if (img?.url) return img.url;
+      return typeof img === 'string' ? img : '';
+    };
+
+    return {
+      _id: r._id,
+      id: r._id || r.id,
+      title: r.title || 'Untitled',
+      description: r.description || 'No description provided.',
+      image: normalizeImageUrl(r.image),
+      images: Array.isArray(r.images) ? r.images.map(normalizeImageUrl).filter(Boolean) : (r.image ? [normalizeImageUrl(r.image)] : []),
+      prepTime: Number(r.prepTime || r.time || 0),
+      difficulty: r.difficulty || 'easy',
+      category: r.category || 'other',
+      cuisine: r.cuisine || 'modern',
+      diet: r.diet || 'none',
+      serves: Number(r.serves || r.yield || 1),
+      rating: r.averageRating || (typeof r.rating === 'number' ? r.rating : (Array.isArray(r.ratings) && r.ratings.length ? r.ratings.reduce((a:number,b:any)=>a+(b.rating||b),0)/r.ratings.length : 0)),
+      calories: Number(r.calories || 0),
+      liked: !!r.liked,
+      ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
+    };
+  };
 
   React.useEffect(() => {
     let cancelled = false;
