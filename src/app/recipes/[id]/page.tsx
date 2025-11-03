@@ -20,8 +20,11 @@ interface Recipe {
   difficulty: 'easy' | 'medium' | 'hard';
   category: string;
   serves: number;
-  rating: number;
-  reviews: number;
+  rating?: number;
+  reviews?: number;
+  averageRating?: number;
+  ratingCount?: number;
+  reviewCount?: number;
   prepTime: string;
   cookTime: string;
   ingredients: string[];
@@ -97,6 +100,41 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
     }
   };
 
+  // Normalize recipe data to handle different field names from API
+  const normalizeRecipe = (data: any): Recipe => {
+    return {
+      ...data,
+      rating: data.averageRating ?? data.rating ?? 0,
+      reviews: data.ratingCount ?? data.reviewCount ?? data.reviews ?? 0,
+    };
+  };
+
+  // Fetch and update recipe data
+  const fetchRecipeData = async () => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(apiUrl(`api/recipes/${resolvedParams.id}`), {
+        headers
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRecipe(normalizeRecipe(data));
+        setIsLiked(data.liked || false);
+      }
+    } catch (err) {
+      console.error('Error fetching recipe:', err);
+    }
+  };
+
   // Fetch recipe data
   useEffect(() => {
     if (!mounted) return;
@@ -124,7 +162,7 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
         }
 
         const data = await response.json();
-        setRecipe(data);
+        setRecipe(normalizeRecipe(data));
         setIsLiked(data.liked || false);
         // Reset image errors when recipe changes
         setImageError(false);
@@ -223,8 +261,8 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
       setUserRating(0);
       setReviewComment('');
       
-      // Refresh reviews
-      await fetchReviews();
+      // Refresh reviews and recipe data to get updated counts
+      await Promise.all([fetchReviews(), fetchRecipeData()]);
     } catch (err: unknown) {
       setRateStatus('error');
       setRateMessage(err instanceof Error ? err.message : 'Failed to submit review');
@@ -434,7 +472,10 @@ export default function RecipeDetailsPage({ params }: RecipeDetailsProps) {
                   />
                 ))}
                 <span className="ml-2 text-lg font-semibold text-gray-700" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                  {recipe.rating?.toFixed(1) || '0.0'} ({recipe.reviews || 0} reviews)
+                  {(() => {
+                    const reviewCount = recipe.reviews !== undefined ? recipe.reviews : reviews.length;
+                    return `${recipe.rating?.toFixed(1) || '0.0'} (${reviewCount} ${reviewCount === 1 ? 'review' : 'reviews'})`;
+                  })()}
                 </span>
               </div>
             </div>
